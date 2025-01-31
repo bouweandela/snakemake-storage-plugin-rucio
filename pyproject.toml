@@ -1,0 +1,24 @@
+[build-system]
+requires = [ "poetry-core",]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "snakemake-storage-plugin-rucio"
+version = "0.1.0"
+description = ""
+authors = [ "Bouwe Andela <b.andela@esciencecenter.nl>",]
+readme = "README.md"
+repository = "https://github.com/your/plugin"
+documentation = "https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+snakemake-interface-common = "^1.17.4"
+snakemake-interface-storage-plugins = "^3.3.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+flake8 = "^7.1.1"
+coverage = "^7.6.10"
+pytest = "^8.3.4"
+snakemake = "^8.27.1"
