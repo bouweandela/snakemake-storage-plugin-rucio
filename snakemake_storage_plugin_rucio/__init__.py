@@ -1,7 +1,17 @@
-from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional, List
+from collections.abc import Iterable
+import dataclasses
+import inspect
+from typing import Any
+from urllib.parse import urlparse
+
+import rucio.client
+import rucio.client.baseclient
+import rucio.client.downloadclient
+import rucio.client.uploadclient
+import rucio.common.exception
+
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
-from snakemake_interface_storage_plugins.storage_provider import (  # noqa: F401
+from snakemake_interface_storage_plugins.storage_provider import (
     StorageProviderBase,
     StorageQueryValidationResult,
     ExampleQuery,
@@ -14,7 +24,7 @@ from snakemake_interface_storage_plugins.storage_object import (
     StorageObjectGlob,
     retry_decorator,
 )
-from snakemake_interface_storage_plugins.io import IOCacheStorageInterface
+from snakemake_interface_storage_plugins.io import IOCacheStorageInterface, Mtime
 
 
 # Optional:
@@ -27,31 +37,35 @@ from snakemake_interface_storage_plugins.io import IOCacheStorageInterface
 # the user can add a tag in front of each value (e.g. tagname1:value1 tagname2:value2).
 # This way, a storage plugin can be used multiple times within a workflow with different
 # settings.
-@dataclass
-class StorageProviderSettings(StorageProviderSettingsBase):
-    myparam: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": "Some help text",
-            # Optionally request that setting is also available for specification
-            # via an environment variable. The variable will be named automatically as
-            # SNAKEMAKE_<storage-plugin-name>_<param-name>, all upper case.
-            # This mechanism should only be used for passwords, usernames, and other
-            # credentials.
-            # For other items, we rather recommend to let people use a profile
-            # for setting defaults
-            # (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles).
-            "env_var": False,
-            # Optionally specify a function that parses the value given by the user.
-            # This is useful to create complex types from the user input.
-            "parse_func": ...,
-            # If a parse_func is specified, you also have to specify an unparse_func
-            # that converts the parsed value back to a string.
-            "unparse_func": ...,
-            # Optionally specify that setting is required when the executor is in use.
-            "required": True,
-        },
-    )
+
+
+# Copy the available settings over from the Rucio client.
+_RUCIO_CLIENT_CLS = rucio.client.baseclient.BaseClient
+
+
+def _get_help(arg: str) -> str:
+    doc = _RUCIO_CLIENT_CLS.__init__.__doc__
+    for line in doc.split("\n"):
+        if arg in line:
+            return line.split(f":param {arg}:", 1)[1]
+    return ""
+
+
+StorageProviderSettings = dataclasses.make_dataclass(
+    "StorageProviderSettings",
+    fields=[
+        (
+            f.name,
+            f.annotation,
+            dataclasses.field(
+                default=f.default,
+                metadata={"help": _get_help(f.name)},
+            ),
+        )
+        for f in inspect.signature(_RUCIO_CLIENT_CLS).parameters.values()
+    ],
+    bases=(StorageProviderSettingsBase,),
+)
 
 
 # Required:
@@ -68,13 +82,28 @@ class StorageProvider(StorageProviderBase):
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
-        pass
+        valid_settings = inspect.signature(_RUCIO_CLIENT_CLS).parameters
+        settings = {
+            k: v
+            for k, v in dataclasses.asdict(self.settings).items()
+            if k in valid_settings
+        }
+        client = rucio.client.Client(**settings)
+        self.client = client
+        self.dclient = rucio.client.downloadclient.DownloadClient(client)
+        self.uclient = rucio.client.uploadclient.UploadClient(client)
 
     @classmethod
-    def example_queries(cls) -> List[ExampleQuery]:
+    def example_queries(cls) -> list[ExampleQuery]:
         """Return an example queries with description for this storage provider (at
         least one)."""
-        ...
+        return [
+            ExampleQuery(
+                query="rucio://myscope/myfile.txt",
+                type=QueryType.ANY,
+                description="A file in a Rucio scope.",
+            )
+        ]
 
     def rate_limiter_key(self, query: str, operation: Operation) -> Any:
         """Return a key for identifying a rate limiter given a query and an operation.
@@ -92,7 +121,7 @@ class StorageProvider(StorageProviderBase):
 
     def use_rate_limiter(self) -> bool:
         """Return False if no rate limiting is needed for this provider."""
-        ...
+        return False
 
     @classmethod
     def is_valid_query(cls, query: str) -> StorageQueryValidationResult:
@@ -100,7 +129,24 @@ class StorageProvider(StorageProviderBase):
         # Ensure that also queries containing wildcards (e.g. {sample}) are accepted
         # and considered valid. The wildcards will be resolved before the storage
         # object is actually used.
-        ...
+        try:
+            parsed = urlparse(query)
+        except Exception as exc:
+            return StorageQueryValidationResult(
+                query=query,
+                valid=False,
+                reason=f"cannot be parsed as URL ({exc})",
+            )
+        if parsed.scheme != "rucio":
+            return StorageQueryValidationResult(
+                query=query,
+                valid=False,
+                reason="must start with rucio (rucio://...)",
+            )
+        return StorageQueryValidationResult(
+            query=query,
+            valid=True,
+        )
 
 
 # Required:
@@ -117,7 +163,15 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
-        pass
+        if not self.is_valid_query():
+            raise ValueError(self.query)
+        parsed = urlparse(self.query)
+        self.scope = parsed.netloc
+        self.file = parsed.path.lstrip("/")
+
+    @property
+    def client(self) -> rucio.client.Client:
+        return self.provider.client
 
     async def inventory(self, cache: IOCacheStorageInterface):
         """From this file, try to find as much existence and modification date
@@ -130,16 +184,35 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         # the given IOCache object, using self.cache_key() as key.
         # Optionally, this can take a custom local suffix, needed e.g. when you want
         # to cache more items than the current query: self.cache_key(local_suffix=...)
-        pass
+        if self.get_inventory_parent() in cache.exists_in_storage:
+            # record has been inventorized before
+            return
 
-    def get_inventory_parent(self) -> Optional[str]:
+        # check if scope exists
+        if self.scope not in self.client.list_scopes():
+            cache.exists_in_storage[self.cache_key()] = False
+        else:
+            cache.exists_in_storage[self.get_inventory_parent()] = True
+            files = list(
+                self.client.list_dids(
+                    scope=self.scope,
+                    filters={"type": "file"},
+                )
+            )
+            dids = [{"scope": self.scope, "name": f} for f in files]
+            for file, meta in zip(files, self.client.get_metadata_bulk(dids)):
+                key = self.cache_key(f"{self.scope}/{file}")
+                cache.mtime[key] = Mtime(storage=meta["updated_at"].timestamp())
+                cache.size[key] = meta["bytes"]
+                cache.exists_in_storage[key] = True
+
+    def get_inventory_parent(self) -> str:
         """Return the parent directory of this object."""
-        # this is optional and can be left as is
-        return None
+        return self.scope
 
     def local_suffix(self) -> str:
         """Return a unique suffix for the local path, determined from self.query."""
-        ...
+        return f"{self.scope}/{self.file}"
 
     def cleanup(self):
         """Perform local cleanup of any remainders of the storage object."""
@@ -153,22 +226,37 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     @retry_decorator
     def exists(self) -> bool:
         # return True if the object exists
-        ...
+        try:
+            self.client.get_did(scope=self.scope, name=self.file)
+        except rucio.common.exception.DataIdentifierNotFound:
+            return False
+        return True
 
     @retry_decorator
     def mtime(self) -> float:
         # return the modification time
-        ...
+        meta = self.client.get_metadata(scope=self.scope, name=self.file)
+        return meta["updated_at"].timestamp()
 
     @retry_decorator
     def size(self) -> int:
         # return the size in bytes
-        ...
+        did = self.client.get_did(scope=self.scope, name=self.file)
+        return did["bytes"]
 
     @retry_decorator
-    def retrieve_object(self):
+    def retrieve_object(self) -> None:
         # Ensure that the object is accessible locally under self.local_path()
-        ...
+        self.provider.dclient.download_dids(
+            [
+                {
+                    "did": f"{self.scope}:{self.file}",
+                    "base_dir": self.local_path().parent,
+                    "no_subdir": True,
+                },
+            ],
+            num_threads=1,
+        )
 
     # The following to methods are only required if the class inherits from
     # StorageObjectReadWrite.
@@ -194,4 +282,10 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         # The method has to return concretized queries without any remaining wildcards.
         # Use snakemake_executor_plugins.io.get_constant_prefix(self.query) to get the
         # prefix of the query before the first wildcard.
-        ...
+        return self.client.list_dids(
+            scope=self.scope,
+            filters={
+                "name": self.file,
+                "type": "file",
+            },
+        )

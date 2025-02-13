@@ -12,9 +12,10 @@ repository = "https://github.com/your/plugin"
 documentation = "https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.11"
 snakemake-interface-common = "^1.17.4"
 snakemake-interface-storage-plugins = "^3.3.0"
+rucio-clients = "^36.3.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
