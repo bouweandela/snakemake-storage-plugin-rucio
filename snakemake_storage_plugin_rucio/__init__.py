@@ -1,3 +1,5 @@
+"""Rucio plugin for Snakemake."""
+
 import dataclasses
 import inspect
 from collections.abc import Iterable, Sequence
@@ -89,36 +91,32 @@ StorageProviderSettings = dataclasses.make_dataclass(
 )
 
 
-# Required:
-# Implementation of your storage provider
-# This class can be empty as the one below.
-# You can however use it to store global information or maintain e.g. a connection
-# pool.
 class StorageProvider(StorageProviderBase):
+    """Rucio storage provider."""
+
     # For compatibility with future changes, you should not overwrite the __init__
     # method. Instead, use __post_init__ to set additional attributes and initialize
     # further stuff.
 
     def __post_init__(self) -> None:
+        """Initialize the storage provider."""
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
-        valid_settings = inspect.signature(_RUCIO_CLIENT_CLS).parameters
-        settings = {
+        valid_client_args = inspect.signature(_RUCIO_CLIENT_CLS).parameters
+        client_kwargs = {
             k: v
             for k, v in dataclasses.asdict(self.settings).items()
-            if k in valid_settings
+            if k in valid_client_args
         }
-        client = rucio.client.Client(**settings)
+        client = rucio.client.Client(**client_kwargs)
         self.client = client
         self.dclient = rucio.client.downloadclient.DownloadClient(client)
         self.uclient = rucio.client.uploadclient.UploadClient(client)
 
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:
-        """Return an example queries with description for this storage provider (at
-        least one).
-        """
+        """Return example queries with description for this storage provider."""
         return [
             ExampleQuery(
                 query="rucio://myscope/myfile.txt",
@@ -141,9 +139,7 @@ class StorageProvider(StorageProviderBase):
         return self.settings.rucio_host
 
     def default_max_requests_per_second(self) -> float:
-        """Return the default maximum number of requests per second for this storage
-        provider.
-        """
+        """Return the default maximum number of requests per second."""
         return 100
 
     def use_rate_limiter(self) -> bool:
@@ -176,17 +172,15 @@ class StorageProvider(StorageProviderBase):
         )
 
 
-# Required:
-# Implementation of storage object. If certain methods cannot be supported by your
-# storage (e.g. because it is read-only see
-# snakemake-storage-http for comparison), remove the corresponding base classes
-# from the list of inherited items.
 class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
+    """Rucio storage object. This represents a single file in Rucio."""
+
     # For compatibility with future changes, you should not overwrite the __init__
     # method. Instead, use __post_init__ to set additional attributes and initialize
     # further stuff.
 
     def __post_init__(self) -> None:
+        """Initialize the storage object."""
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
@@ -198,14 +192,20 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     @property
     def client(self) -> rucio.client.Client:
+        """Rucio client."""
         return self.provider.client
 
     async def inventory(self, cache: IOCacheStorageInterface) -> None:
-        """From this file, try to find as much existence and modification date
+        """Read the information about all files in a scope efficiently.
+
+        From this file, try to find as much existence and modification date
         information as possible. Only retrieve that information that comes for free
         given the current object.
         """
-        # This is optional and can be left as is
+        # This retrieves information about all the files in the file scope at
+        # once. This is faster than sending a new request for each file, but
+        # If this becomes too slow because scopes contain too many files,
+        # we may need to add a setting to disable it.
 
         # If this is implemented in a storage object, results have to be stored in
         # the given IOCache object, using self.cache_key() as key.
@@ -234,6 +234,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             self._handle(cache, batch)
 
     def _handle(self, cache: IOCacheStorageInterface, files: Sequence[str]) -> None:
+        """Add a sequence of files to the cache."""
         dids = [{"scope": self.scope, "name": f} for f in files]
         for file, meta in zip(files, self.client.get_metadata_bulk(dids)):
             key = self.cache_key(f"{self.scope}/{file}")
@@ -259,7 +260,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     # provided by snakemake-interface-storage-plugins.
     @retry_decorator
     def exists(self) -> bool:
-        # return True if the object exists
+        """Return True if the object exists."""
         try:
             self.client.get_did(scope=self.scope, name=self.file)
         except rucio.common.exception.DataIdentifierNotFound:
@@ -268,19 +269,19 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     @retry_decorator
     def mtime(self) -> float:
-        # return the modification time
+        """Return the modification time."""
         meta = self.client.get_metadata(scope=self.scope, name=self.file)
         return meta["updated_at"].timestamp()
 
     @retry_decorator
     def size(self) -> int:
-        # return the size in bytes
+        """Return the size in bytes."""
         did = self.client.get_did(scope=self.scope, name=self.file)
         return did["bytes"]
 
     @retry_decorator
     def retrieve_object(self) -> None:
-        # Ensure that the object is accessible locally under self.local_path()
+        """Download the file to self.local_path()."""
         self.provider.dclient.download_dids(
             [
                 {
@@ -293,13 +294,9 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             num_threads=1,
         )
 
-    # The following to methods are only required if the class inherits from
-    # StorageObjectReadWrite.
-
     @retry_decorator
     def store_object(self) -> None:
-        # Ensure that the object is stored at the location specified by
-        # self.local_path().
+        """Upload the file."""
         if self.exists():
             msg = f'File "{self.scope}:{self.file}" already exists on Rucio'
             raise ValueError(msg)
@@ -320,11 +317,8 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     @retry_decorator
     def remove(self) -> None:
-        # Remove the object from the storage.
-        ...
-
-    # The following to methods are only required if the class inherits from
-    # StorageObjectGlob.
+        """Remove the file from the storage."""
+        raise NotImplementedError
 
     @retry_decorator
     def list_candidate_matches(self) -> Iterable[str]:

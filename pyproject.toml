@@ -29,10 +29,11 @@ ignore = [
     "ANN401",
     "INP001",
     "TC",
-    "D",     # TODO: enable again
+    "COM812",  # Conflicts with the formatter.
+    "D203",    # Conflicts with the formatter.
     "D211",
     "D213",
-    "E501",  # Disable line-too-long as this is taken care of by the formatter.
+    "E501",    # Disable line-too-long as this is taken care of by the formatter.
 ]
 
 [tool.ruff.lint.isort]
