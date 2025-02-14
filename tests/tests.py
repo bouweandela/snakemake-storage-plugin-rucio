@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
 from snakemake_interface_storage_plugins.storage_provider import StorageProviderBase
 from snakemake_interface_storage_plugins.tests import TestStorageBase
@@ -24,6 +26,10 @@ class TestStorageRucioBase(TestStorageBase):
         return StorageProviderSettings(upload_rse="NIKHEF")
 
 
+@pytest.mark.skipif(
+    "RUCIO_CONFIG" not in os.environ,
+    reason="requires a Rucio configuration",
+)
 class TestStorageRead(TestStorageRucioBase):
     __test__ = True
     retrieve_only = True  # set to True if the storage is read-only
@@ -40,6 +46,10 @@ class TestStorageRead(TestStorageRucioBase):
         return "rucio://testing/test0.txt"
 
 
+@pytest.mark.skipif(
+    "RUCIO_CONFIG" not in os.environ,
+    reason="requires a Rucio configuration",
+)
 class TestStorageWrite(TestStorageRucioBase):
     __test__ = True
     retrieve_only = False  # set to True if the storage is read-only
