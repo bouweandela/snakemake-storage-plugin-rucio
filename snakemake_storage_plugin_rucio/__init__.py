@@ -61,6 +61,7 @@ StorageProviderSettings = dataclasses.make_dataclass(
             ),
         )
         for f in inspect.signature(_RUCIO_CLIENT_CLS).parameters.values()
+        if f.name not in ("logger",)
     ]
     + [
         (
