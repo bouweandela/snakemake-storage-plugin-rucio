@@ -26,6 +26,8 @@ from snakemake_interface_storage_plugins.storage_provider import (
     StorageQueryValidationResult,
 )
 
+from snakemake.logging import logger as smk_logger
+
 # Optional:
 # Define settings for your storage plugin (e.g. host url, credentials).
 # They will occur in the Snakemake CLI as --storage-<storage-plugin-name>-<param-name>
@@ -109,11 +111,13 @@ class StorageProvider(StorageProviderBase):
             for k, v in dataclasses.asdict(self.settings).items()
             if k in valid_client_args
         }
-        client = rucio.client.Client(**client_kwargs)
-        self.client = client
-        self.dclient = rucio.client.downloadclient.DownloadClient(client)
-        self.uclient = rucio.client.uploadclient.UploadClient(client)
 
+        client = rucio.client.Client(logger = smk_logger, **client_kwargs)
+        self.client = client
+        self.dclient = rucio.client.downloadclient.DownloadClient(client, logger = smk_logger.logger)
+        self.uclient = rucio.client.uploadclient.UploadClient(client, logger = smk_logger.logger)
+
+        
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:
         """Return example queries with description for this storage provider."""
