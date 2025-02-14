@@ -41,7 +41,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: poetry
-      
+
       - name: Install Dependencies using Poetry
         run: |
           poetry install

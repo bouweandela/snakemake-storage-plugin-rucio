@@ -5,10 +5,10 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "snakemake-storage-plugin-rucio"
 version = "0.1.0"
-description = ""
+description = "A Snakemake storage plugin that handles files available through Rucio."
 authors = [ "Bouwe Andela <b.andela@esciencecenter.nl>",]
 readme = "README.md"
-repository = "https://github.com/your/plugin"
+repository = "https://github.com/bouweandela/snakemake-storage-plugin-rucio"
 documentation = "https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html"
 
 [tool.poetry.dependencies]
@@ -18,8 +18,22 @@ snakemake-interface-storage-plugins = "^3.3.0"
 rucio-clients = "^36.3.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-flake8 = "^7.1.1"
 coverage = "^7.6.10"
+pre-commit = "^4.1.0"
 pytest = "^8.3.4"
 snakemake = "^8.27.1"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN401",
+    "INP001",
+    "TC",
+    "D",     # TODO: enable again
+    "D211",
+    "D213",
+    "E501",  # Disable line-too-long as this is taken care of by the formatter.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["snakemake-storage-plugin-rucio"]

@@ -1,7 +1,6 @@
-from collections.abc import Iterable
 import dataclasses
 import inspect
-from typing import Any
+from collections.abc import Iterable, Sequence
 from urllib.parse import urlparse
 
 import rucio.client
@@ -9,23 +8,21 @@ import rucio.client.baseclient
 import rucio.client.downloadclient
 import rucio.client.uploadclient
 import rucio.common.exception
-
+from snakemake_interface_storage_plugins.io import IOCacheStorageInterface, Mtime
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
+from snakemake_interface_storage_plugins.storage_object import (
+    StorageObjectGlob,
+    StorageObjectRead,
+    StorageObjectWrite,
+    retry_decorator,
+)
 from snakemake_interface_storage_plugins.storage_provider import (
-    StorageProviderBase,
-    StorageQueryValidationResult,
     ExampleQuery,
     Operation,
     QueryType,
+    StorageProviderBase,
+    StorageQueryValidationResult,
 )
-from snakemake_interface_storage_plugins.storage_object import (
-    StorageObjectRead,
-    StorageObjectWrite,
-    StorageObjectGlob,
-    retry_decorator,
-)
-from snakemake_interface_storage_plugins.io import IOCacheStorageInterface, Mtime
-
 
 # Optional:
 # Define settings for your storage plugin (e.g. host url, credentials).
@@ -44,6 +41,7 @@ _RUCIO_CLIENT_CLS = rucio.client.baseclient.BaseClient
 
 
 def _get_help(arg: str) -> str:
+    """Read the help text for a Rucio client argument."""
     doc = _RUCIO_CLIENT_CLS.__init__.__doc__
     for line in doc.split("\n"):
         if arg in line:
@@ -63,6 +61,28 @@ StorageProviderSettings = dataclasses.make_dataclass(
             ),
         )
         for f in inspect.signature(_RUCIO_CLIENT_CLS).parameters.values()
+    ]
+    + [
+        (
+            "ignore_checksum",
+            bool,
+            dataclasses.field(
+                default=False,
+                metadata={
+                    "help": "If true, skips the checksum validation between the downloaded file and the rucio catalouge.",
+                },
+            ),
+        ),
+        (
+            "upload_rse",
+            str,
+            dataclasses.field(
+                default=None,
+                metadata={
+                    "help": "Rucio Storage Element (RSE) expression to upload files to.",
+                },
+            ),
+        ),
     ],
     bases=(StorageProviderSettingsBase,),
 )
@@ -76,9 +96,9 @@ StorageProviderSettings = dataclasses.make_dataclass(
 class StorageProvider(StorageProviderBase):
     # For compatibility with future changes, you should not overwrite the __init__
     # method. Instead, use __post_init__ to set additional attributes and initialize
-    # futher stuff.
+    # further stuff.
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
@@ -96,28 +116,34 @@ class StorageProvider(StorageProviderBase):
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:
         """Return an example queries with description for this storage provider (at
-        least one)."""
+        least one).
+        """
         return [
             ExampleQuery(
                 query="rucio://myscope/myfile.txt",
                 type=QueryType.ANY,
                 description="A file in a Rucio scope.",
-            )
+            ),
         ]
 
-    def rate_limiter_key(self, query: str, operation: Operation) -> Any:
+    def rate_limiter_key(
+        self,
+        query: str,  # noqa: ARG002
+        operation: Operation,  # noqa: ARG002
+    ) -> str:
         """Return a key for identifying a rate limiter given a query and an operation.
 
         This is used to identify a rate limiter for the query.
         E.g. for a storage provider like http that would be the host name.
         For s3 it might be just the endpoint URL.
         """
-        ...
+        return self.settings.rucio_host
 
     def default_max_requests_per_second(self) -> float:
         """Return the default maximum number of requests per second for this storage
-        provider."""
-        ...
+        provider.
+        """
+        return 100
 
     def use_rate_limiter(self) -> bool:
         """Return False if no rate limiting is needed for this provider."""
@@ -131,7 +157,7 @@ class StorageProvider(StorageProviderBase):
         # object is actually used.
         try:
             parsed = urlparse(query)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return StorageQueryValidationResult(
                 query=query,
                 valid=False,
@@ -157,9 +183,9 @@ class StorageProvider(StorageProviderBase):
 class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     # For compatibility with future changes, you should not overwrite the __init__
     # method. Instead, use __post_init__ to set additional attributes and initialize
-    # futher stuff.
+    # further stuff.
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # This is optional and can be removed if not needed.
         # Alternatively, you can e.g. prepare a connection to your storage backend here.
         # and set additional attributes.
@@ -173,7 +199,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     def client(self) -> rucio.client.Client:
         return self.provider.client
 
-    async def inventory(self, cache: IOCacheStorageInterface):
+    async def inventory(self, cache: IOCacheStorageInterface) -> None:
         """From this file, try to find as much existence and modification date
         information as possible. Only retrieve that information that comes for free
         given the current object.
@@ -193,18 +219,26 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             cache.exists_in_storage[self.cache_key()] = False
         else:
             cache.exists_in_storage[self.get_inventory_parent()] = True
-            files = list(
-                self.client.list_dids(
-                    scope=self.scope,
-                    filters={"type": "file"},
-                )
+            files = self.client.list_dids(
+                scope=self.scope,
+                filters={"type": "file"},
             )
-            dids = [{"scope": self.scope, "name": f} for f in files]
-            for file, meta in zip(files, self.client.get_metadata_bulk(dids)):
-                key = self.cache_key(f"{self.scope}/{file}")
-                cache.mtime[key] = Mtime(storage=meta["updated_at"].timestamp())
-                cache.size[key] = meta["bytes"]
-                cache.exists_in_storage[key] = True
+            batch_size = 500
+            batch = []
+            for i, file in enumerate(files, 1):
+                batch.append(file)
+                if i % batch_size == 0:
+                    self._handle(cache, batch)
+                    batch.clear()
+            self._handle(cache, batch)
+
+    def _handle(self, cache: IOCacheStorageInterface, files: Sequence[str]) -> None:
+        dids = [{"scope": self.scope, "name": f} for f in files]
+        for file, meta in zip(files, self.client.get_metadata_bulk(dids)):
+            key = self.cache_key(f"{self.scope}/{file}")
+            cache.mtime[key] = Mtime(storage=meta["updated_at"].timestamp())
+            cache.size[key] = meta["bytes"]
+            cache.exists_in_storage[key] = True
 
     def get_inventory_parent(self) -> str:
         """Return the parent directory of this object."""
@@ -214,11 +248,10 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         """Return a unique suffix for the local path, determined from self.query."""
         return f"{self.scope}/{self.file}"
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Perform local cleanup of any remainders of the storage object."""
         # self.local_path() should not be removed, as this is taken care of by
         # Snakemake.
-        ...
 
     # Fallible methods should implement some retry logic.
     # The easiest way to do this (but not the only one) is to use the retry_decorator
@@ -253,6 +286,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
                     "did": f"{self.scope}:{self.file}",
                     "base_dir": self.local_path().parent,
                     "no_subdir": True,
+                    "ignore_checksum": self.provider.settings.ignore_checksum,
                 },
             ],
             num_threads=1,
@@ -262,13 +296,29 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     # StorageObjectReadWrite.
 
     @retry_decorator
-    def store_object(self):
+    def store_object(self) -> None:
         # Ensure that the object is stored at the location specified by
         # self.local_path().
-        ...
+        if self.exists():
+            msg = f'File "{self.scope}:{self.file}" already exists on Rucio'
+            raise ValueError(msg)
+        rse = self.provider.settings.upload_rse
+        if rse is None:
+            msg = "Please specify the `upload_rse`."
+            raise ValueError(msg)
+        self.provider.uclient.upload(
+            [
+                {
+                    "path": self.local_path(),
+                    "did_scope": self.scope,
+                    "rse": self.provider.settings.upload_rse,
+                    "register_after_upload": True,
+                },
+            ],
+        )
 
     @retry_decorator
-    def remove(self):
+    def remove(self) -> None:
         # Remove the object from the storage.
         ...
 
