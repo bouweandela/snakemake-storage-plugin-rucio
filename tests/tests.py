@@ -39,11 +39,11 @@ class TestStorageRead(TestStorageRucioBase):
     def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
         # Return a query. If retrieve_only is True, this should be a query that
         # is present in the storage, as it will not be created.
-        return "rucio://testing/test5.txt"
+        return "rucio://testing/test.txt"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         # Return a query that is not present in the storage.
-        return "rucio://testing/test0.txt"
+        return "rucio://testing/abc.txt"
 
 
 @pytest.mark.skipif(
@@ -57,12 +57,11 @@ class TestStorageWrite(TestStorageRucioBase):
     delete = False  # set to False if the storage does not support deletion
 
     def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
-        # Return a query. If retrieve_only is True, this should be a query that
-        # is present in the storage, as it will not be created.
+        # Return a query for a new file with a unique name.
+        file = f"snakemake-storage-plugin-test-{datetime.now(timezone.utc):%Y%m%dT%H%M%S%f}.txt"
         scope = "testing"
-        file = f"test-{datetime.now(timezone.utc).isoformat()}.txt"
-        return f"rucio://{scope}/{file}.txt"
+        return f"rucio://{scope}/{file}"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         # Return a query that is not present in the storage.
-        return "rucio://testing/test0.txt"
+        return "rucio://testing/abc.txt"
