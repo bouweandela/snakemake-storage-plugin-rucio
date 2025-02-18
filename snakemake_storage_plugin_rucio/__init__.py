@@ -72,7 +72,7 @@ StorageProviderSettings = dataclasses.make_dataclass(
             dataclasses.field(
                 default=False,
                 metadata={
-                    "help": "If true, skips the checksum validation between the downloaded file and the rucio catalouge.",
+                    "help": "If true, skips the checksum validation between the downloaded file and the rucio catalogue.",
                 },
             ),
         ),
@@ -83,6 +83,16 @@ StorageProviderSettings = dataclasses.make_dataclass(
                 default=None,
                 metadata={
                     "help": "Rucio Storage Element (RSE) expression to upload files to.",
+                },
+            ),
+        ),
+        (
+            "cache_scope",
+            bool,
+            dataclasses.field(
+                default=False,
+                metadata={
+                    "help": "If true, minimize the number of server calls by caching the size and creation time of all files in the same scope.",
                 },
             ),
         ),
@@ -215,23 +225,27 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             # record has been inventorized before
             return
 
-        # check if scope exists
-        if self.scope not in self.client.list_scopes():
-            cache.exists_in_storage[self.cache_key()] = False
+        if self.provider.settings.cache_scope:
+            # Cache the entire scope
+            if self.scope not in self.client.list_scopes():
+                # check if scope exists
+                cache.exists_in_storage[self.cache_key()] = False
+            else:
+                cache.exists_in_storage[self.get_inventory_parent()] = True
+                files = self.client.list_dids(
+                    scope=self.scope,
+                    filters={"type": "file"},
+                )
+                batch_size = 500
+                batch = []
+                for i, file in enumerate(files, 1):
+                    batch.append(file)
+                    if i % batch_size == 0:
+                        self._handle(cache, batch)
+                        batch.clear()
+                self._handle(cache, batch)
         else:
-            cache.exists_in_storage[self.get_inventory_parent()] = True
-            files = self.client.list_dids(
-                scope=self.scope,
-                filters={"type": "file"},
-            )
-            batch_size = 500
-            batch = []
-            for i, file in enumerate(files, 1):
-                batch.append(file)
-                if i % batch_size == 0:
-                    self._handle(cache, batch)
-                    batch.clear()
-            self._handle(cache, batch)
+            self._handle(cache, [self.file])
 
     def _handle(self, cache: IOCacheStorageInterface, files: Sequence[str]) -> None:
         """Add a sequence of files to the cache."""
