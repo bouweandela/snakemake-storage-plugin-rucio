@@ -77,6 +77,16 @@ StorageProviderSettings = dataclasses.make_dataclass(
             ),
         ),
         (
+            "download_rse",
+            str,
+            dataclasses.field(
+                default=None,
+                metadata={
+                    "help": "Rucio Storage Element (RSE) expression to download files from.",
+                },
+            ),
+        ),
+        (
             "upload_rse",
             str,
             dataclasses.field(
@@ -299,10 +309,11 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         self.provider.dclient.download_dids(
             [
                 {
-                    "did": f"{self.scope}:{self.file}",
                     "base_dir": self.local_path().parent,
-                    "no_subdir": True,
+                    "did": f"{self.scope}:{self.file}",
                     "ignore_checksum": self.provider.settings.ignore_checksum,
+                    "no_subdir": True,
+                    "rse": self.provider.settings.download_rse,
                 },
             ],
             num_threads=1,
