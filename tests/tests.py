@@ -27,7 +27,10 @@ class TestStorageRucioBase(TestStorageBase):
         self,
     ) -> StorageProviderSettingsBase | None:
         """Create StorageProviderSettings of this plugin for testing."""
-        return StorageProviderSettings(upload_rse="NIKHEF")
+        return StorageProviderSettings(
+            download_rse="NIKHEF",
+            upload_rse="NIKHEF",
+        )
 
 
 @pytest.mark.skipif(
