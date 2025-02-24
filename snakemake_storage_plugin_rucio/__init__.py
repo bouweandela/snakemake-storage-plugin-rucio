@@ -10,6 +10,7 @@ import rucio.client.baseclient
 import rucio.client.downloadclient
 import rucio.client.uploadclient
 import rucio.common.exception
+from snakemake.logging import logger as smk_logger
 from snakemake_interface_storage_plugins.io import IOCacheStorageInterface, Mtime
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
 from snakemake_interface_storage_plugins.storage_object import (
@@ -129,10 +130,15 @@ class StorageProvider(StorageProviderBase):
             for k, v in dataclasses.asdict(self.settings).items()
             if k in valid_client_args
         }
-        client = rucio.client.Client(**client_kwargs)
+
+        client = rucio.client.Client(logger=smk_logger, **client_kwargs)
         self.client = client
-        self.dclient = rucio.client.downloadclient.DownloadClient(client)
-        self.uclient = rucio.client.uploadclient.UploadClient(client)
+        self.dclient = rucio.client.downloadclient.DownloadClient(
+            client, logger=smk_logger.logger
+        )
+        self.uclient = rucio.client.uploadclient.UploadClient(
+            client, logger=smk_logger.logger
+        )
 
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:
