@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "snakemake-storage-plugin-rucio"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Snakemake storage plugin that handles files available through Rucio."
 authors = [ "Bouwe Andela <b.andela@esciencecenter.nl>",]
 readme = "README.md"
