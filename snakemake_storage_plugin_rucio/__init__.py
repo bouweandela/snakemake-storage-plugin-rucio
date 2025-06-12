@@ -2,6 +2,7 @@
 
 import dataclasses
 import inspect
+import re
 from collections.abc import Iterable, Sequence
 from urllib.parse import urlparse
 
@@ -46,10 +47,8 @@ _RUCIO_CLIENT_CLS = rucio.client.baseclient.BaseClient
 def _get_help(arg: str) -> str:
     """Read the help text for a Rucio client argument."""
     doc = _RUCIO_CLIENT_CLS.__init__.__doc__
-    for line in doc.split("\n"):
-        if arg in line:
-            return line.split(f":param {arg}:", 1)[1]
-    return ""
+    match = re.search(f"\n{arg} +:\n +(?P<txt>.*)\n", doc)
+    return match.group("txt") if match else ""
 
 
 StorageProviderSettings = dataclasses.make_dataclass(
@@ -134,11 +133,9 @@ class StorageProvider(StorageProviderBase):
         client = rucio.client.Client(logger=smk_logger, **client_kwargs)
         self.client = client
         self.dclient = rucio.client.downloadclient.DownloadClient(
-            client, logger=smk_logger.logger
+            client, logger=smk_logger
         )
-        self.uclient = rucio.client.uploadclient.UploadClient(
-            client, logger=smk_logger.logger
-        )
+        self.uclient = rucio.client.uploadclient.UploadClient(client, logger=smk_logger)
 
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:

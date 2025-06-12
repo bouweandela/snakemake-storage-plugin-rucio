@@ -23,15 +23,15 @@ keywords = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-snakemake-interface-common = "^1.17.4"
-snakemake-interface-storage-plugins = "^3.3.0"
-rucio-clients = "^36.3.0"
+snakemake-interface-common = "^1.18.0"
+snakemake-interface-storage-plugins = "^4.2.1"
+rucio = "^37.4.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.6.10"
 pre-commit = "^4.1.0"
 pytest = "^8.3.4"
-snakemake = "^8.27.1"
+snakemake = "^9.5.1"
 
 [tool.ruff.lint]
 select = ["ALL"]
