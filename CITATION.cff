@@ -1,0 +1,32 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: snakemake-storage-plugin-rucio
+message: >-
+  A Snakemake storage plugin that handles files available
+  through Rucio.
+type: software
+authors:
+  - given-names: Bouwe
+    family-names: Andela
+    email: b.andela@esciencecenter.nl
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0001-9005-8940'
+  - given-names: Valentin
+    family-names: Pestel
+    orcid: 'https://orcid.org/0000-0001-6168-0669'
+    affiliation: Laboratoire de Physique Corpusculaire de Caen
+    email: valentinpestel@gmail.com
+repository-code: >-
+  https://github.com/bouweandela/snakemake-storage-plugin-rucio
+url: >-
+  https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html
+abstract: >-
+  A Snakemake storage plugin that handles files available through Rucio.
+keywords:
+  - snakemake
+  - plugin
+  - storage
+  - rucio
+license: Apache-2.0
