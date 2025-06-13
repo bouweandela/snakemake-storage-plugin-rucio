@@ -1,7 +1,10 @@
 """Rucio plugin for Snakemake."""
 
+from __future__ import annotations
+
 import dataclasses
 import inspect
+import random
 import re
 from collections.abc import Iterable, Sequence
 from urllib.parse import urlparse
@@ -188,7 +191,7 @@ class StorageProvider(StorageProviderBase):
                 valid=False,
                 reason=f"cannot be parsed as URL ({exc})",
             )
-        if parsed.scheme != "rucio":
+        if not parsed.scheme:
             return StorageQueryValidationResult(
                 query=query,
                 valid=False,
@@ -215,6 +218,22 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         parsed = urlparse(self.query)
         self.scope = parsed.netloc
         self.file = parsed.path.lstrip("/")
+        if not self.retrieve:
+            streaming_url = self._get_streaming_url()
+            if streaming_url is not None:
+                # The snakemake code assumes that the query is equal to the
+                # remote path when retrieve is set to False.
+                # While this works for https and s3, it does not work for Rucio
+                # because the Rucio query is not a a valid URL and the tools that
+                # use the streaming URL are not aware of Rucio.
+                # https://github.com/snakemake/snakemake/blob/6dee2b55fbfff3bdad33cecdbeb8bd55ff4586bc/src/snakemake/io/__init__.py#L1752-L1761
+                # Therefore, we set the query to the streaming URL.
+                self.query = streaming_url
+                # When a job fails, it is displayed using the local_path(),
+                # even though the path in the job script as executed is the query (see above).
+                # Therefore, we set the local path to the streaming URL for easy
+                # to understand error messages.
+                self.set_local_path(streaming_url)
 
     @property
     def client(self) -> rucio.client.Client:
@@ -232,6 +251,9 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         # the given IOCache object, using self.cache_key() as key.
         # Optionally, this can take a custom local suffix, needed e.g. when you want
         # to cache more items than the current query: self.cache_key(local_suffix=...)
+        if not self.retrieve:
+            return
+
         if self.get_inventory_parent() in cache.exists_in_storage:
             # record has been inventorized before
             return
@@ -307,6 +329,21 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         """Return the size in bytes."""
         did = self.client.get_did(scope=self.scope, name=self.file)
         return did["bytes"]
+
+    @retry_decorator
+    def _get_streaming_url(self) -> str | None:
+        """Return a URL for streaming the file."""
+        replicas = self.client.list_replicas(
+            dids=[{"scope": self.scope, "name": self.file}],
+            rse_expression=self.provider.settings.download_rse,
+        )
+        urls = [
+            url
+            for replica in replicas
+            for site_urls in replica["rses"].values()
+            for url in site_urls
+        ]
+        return random.choice(urls) if urls else None  # noqa: S311
 
     @retry_decorator
     def retrieve_object(self) -> None:
