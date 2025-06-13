@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.2.0...v0.3.0) (2025-06-13)
+
+
+### Features
+
+* improved path parsing ([#21](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/21)) ([3cdcd80](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/3cdcd802bfcc83d470ac8f59604cbfdfe02f35aa))
+
 ## [0.2.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.1.1...v0.2.0) (2025-06-13)
 
 
