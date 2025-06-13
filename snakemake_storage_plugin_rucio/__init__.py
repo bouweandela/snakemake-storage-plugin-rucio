@@ -266,7 +266,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     def _handle(self, cache: IOCacheStorageInterface, files: Sequence[str]) -> None:
         """Add a sequence of files to the cache."""
         dids = [{"scope": self.scope, "name": f} for f in files]
-        for file, meta in zip(files, self.client.get_metadata_bulk(dids)):
+        for file, meta in zip(files, self.client.get_metadata_bulk(dids), strict=True):
             key = self.cache_key(f"{self.scope}/{file}")
             cache.mtime[key] = Mtime(storage=meta["updated_at"].timestamp())
             cache.size[key] = meta["bytes"]

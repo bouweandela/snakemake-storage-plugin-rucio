@@ -9,7 +9,7 @@ An easy way to install all required software is to run
 ```bash
 conda create -n snakemake-storage-plugin-rucio-dev -c conda-forge python-gfal2 voms poetry
 conda activate snakemake-storage-plugin-rucio-dev
-poetry install --with=dev
+poetry install --extras dev
 pre-commit install
 ```
 
@@ -29,7 +29,7 @@ pre-commit run --all
 The tests can be run with the command:
 
 ```bash
-pytest tests/tests.py
+pytest tests/tests.py --cov
 ```
 
 If no [`RUCIO_CONFIG`](https://rucio.github.io/documentation/user/configuring_the_client#rucio_config)

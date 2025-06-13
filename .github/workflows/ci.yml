@@ -32,7 +32,7 @@ jobs:
           cache: poetry
 
       - name: Install Dependencies using Poetry
-        run: poetry install
+        run: poetry install --extras dev
 
       - name: Check code
         run: poetry run pre-commit run --all
@@ -58,7 +58,7 @@ jobs:
           cache: poetry
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --extras dev
 
       - name: Run pytest
         run: poetry run coverage run -m pytest tests/tests.py
