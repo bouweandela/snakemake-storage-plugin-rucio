@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -70,7 +70,7 @@ class TestStorageWrite(TestStorageRucioBase):
 
     def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query for a new file with a unique name."""
-        file = f"snakemake-storage-plugin-test-{datetime.now(timezone.utc):%Y%m%dT%H%M%S%f}.txt"
+        file = f"snakemake-storage-plugin-test-{datetime.now(UTC):%Y%m%dT%H%M%S%f}.txt"
         scope = "testing"
         return f"rucio://{scope}/{file}"
 
