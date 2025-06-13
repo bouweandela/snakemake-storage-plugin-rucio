@@ -191,15 +191,19 @@ class StorageProvider(StorageProviderBase):
                 valid=False,
                 reason=f"cannot be parsed as URL ({exc})",
             )
-        if not parsed.scheme:
+        # Accept both rucio://scope/file and rucio:/scope/file.
+        path_elements = parsed.path.lstrip("/").split("/")
+        if (bool(parsed.netloc) and len(path_elements) == 1) or (
+            not parsed.netloc and len(path_elements) == 2  # noqa: PLR2004
+        ):
             return StorageQueryValidationResult(
                 query=query,
-                valid=False,
-                reason="must start with rucio (rucio://...)",
+                valid=True,
             )
         return StorageQueryValidationResult(
             query=query,
-            valid=True,
+            valid=False,
+            reason="must be of the form rucio://scope/file",
         )
 
 
@@ -216,8 +220,13 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         if not self.is_valid_query():
             raise ValueError(self.query)
         parsed = urlparse(self.query)
-        self.scope = parsed.netloc
-        self.file = parsed.path.lstrip("/")
+        # Accept both rucio://scope/file and rucio:/scope/file.
+        path_elements = parsed.path.lstrip("/").split("/")
+        if parsed.netloc:
+            self.scope = parsed.netloc
+            self.file = path_elements[0]
+        else:
+            self.scope, self.file = path_elements
         if not self.retrieve:
             streaming_url = self._get_streaming_url()
             if streaming_url is not None:
