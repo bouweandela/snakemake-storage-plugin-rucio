@@ -48,6 +48,9 @@ def _get_help(arg: str) -> str:
     """Read the help text for a Rucio client argument."""
     doc = _RUCIO_CLIENT_CLS.__init__.__doc__
     match = re.search(f"\n{arg} +:\n +(?P<txt>.*)\n", doc)
+    if not match:
+        # The help text is in a different format for versions of rucio before 37.4:
+        match = re.search(f"\n:param +{arg}: +(?P<txt>.*)\n", doc)
     return match.group("txt") if match else ""
 
 
