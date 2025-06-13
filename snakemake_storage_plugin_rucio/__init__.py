@@ -11,7 +11,7 @@ import rucio.client.baseclient
 import rucio.client.downloadclient
 import rucio.client.uploadclient
 import rucio.common.exception
-from snakemake.logging import logger as smk_logger
+from snakemake_interface_common.logging import get_logger
 from snakemake_interface_storage_plugins.io import IOCacheStorageInterface, Mtime
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
 from snakemake_interface_storage_plugins.storage_object import (
@@ -133,12 +133,14 @@ class StorageProvider(StorageProviderBase):
             if k in valid_client_args
         }
 
-        client = rucio.client.Client(logger=smk_logger, **client_kwargs)
-        self.client = client
+        logger = get_logger()
+        self.client = rucio.client.Client(logger=logger, **client_kwargs)
         self.dclient = rucio.client.downloadclient.DownloadClient(
-            client, logger=smk_logger
+            self.client, logger=logger
         )
-        self.uclient = rucio.client.uploadclient.UploadClient(client, logger=smk_logger)
+        self.uclient = rucio.client.uploadclient.UploadClient(
+            self.client, logger=logger
+        )
 
     @classmethod
     def example_queries(cls) -> list[ExampleQuery]:
@@ -207,9 +209,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     def __post_init__(self) -> None:
         """Initialize the storage object."""
-        # This is optional and can be removed if not needed.
-        # Alternatively, you can e.g. prepare a connection to your storage backend here.
-        # and set additional attributes.
+        self.query: str
         if not self.is_valid_query():
             raise ValueError(self.query)
         parsed = urlparse(self.query)
@@ -228,11 +228,6 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         information as possible. Only retrieve that information that comes for free
         given the current object.
         """
-        # This retrieves information about all the files in the file scope at
-        # once. This is faster than sending a new request for each file, but
-        # If this becomes too slow because scopes contain too many files,
-        # we may need to add a setting to disable it.
-
         # If this is implemented in a storage object, results have to be stored in
         # the given IOCache object, using self.cache_key() as key.
         # Optionally, this can take a custom local suffix, needed e.g. when you want
@@ -241,6 +236,10 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             # record has been inventorized before
             return
 
+        # This retrieves information about all the files in the file scope at
+        # once. This is faster than sending a new request for each file, but
+        # If this becomes too slow because scopes contain too many files,
+        # we may need to add a setting to disable it.
         if self.provider.settings.cache_scope:
             # Cache the entire scope
             if self.scope not in self.client.list_scopes():
@@ -250,7 +249,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
                 cache.exists_in_storage[self.get_inventory_parent()] = True
                 files = self.client.list_dids(
                     scope=self.scope,
-                    filters={"type": "file"},
+                    filters=[{"type": "file"}],
                 )
                 batch_size = 500
                 batch = []
@@ -360,8 +359,10 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         # prefix of the query before the first wildcard.
         return self.client.list_dids(
             scope=self.scope,
-            filters={
-                "name": self.file,
-                "type": "file",
-            },
+            filters=[
+                {
+                    "name": self.file,
+                    "type": "file",
+                }
+            ],
         )
