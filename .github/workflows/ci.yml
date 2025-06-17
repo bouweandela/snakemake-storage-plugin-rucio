@@ -40,7 +40,27 @@ jobs:
   testing:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'rucio/rucio'
+          ref: '37.5.0'
+          path: 'rucio'
+
+      - name: Expose Rucio service
+        run: |
+          cd "$GITHUB_WORKSPACE/rucio"
+          ls $GITHUB_WORKSPACE
+          git apply "$GITHUB_WORKSPACE/ci/rucio/expose_ports.patch"
+
+      - name: Run docker compose
+        uses: hoverkraft-tech/compose-action@v2.0.1
+        with:
+          compose-file: "$GITHUB_WORKSPACE/rucio/etc/docker/dev/docker-compose.yml"
+
+      - name: Configure Rucio and populate with test data.
+        run: docker exec -it dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
 
       - uses: actions/setup-python@v4
         with:
@@ -60,8 +80,17 @@ jobs:
       - name: Install dependencies
         run: poetry install --extras dev
 
+      - name: Check Rucio service availability
+        run: |
+          rucio --verbose ping
+          rucio --verbose whoami
+        env:
+          RUCIO_CONFIG: "ci/rucio/rucio.cfg"
+
       - name: Run pytest
         run: poetry run coverage run -m pytest tests/tests.py
+        env:
+          RUCIO_CONFIG: "ci/rucio/rucio.cfg"
 
       - name: Run Coverage
         run: poetry run coverage report -m
