@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.3.0...v0.3.1) (2025-06-17)
+
+
+### Bug Fixes
+
+* accept streaming URLs as valid queries ([#25](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/25)) ([741d3a9](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/741d3a9fc0e818f372d147eea00f05ac614b2835))
+
 ## [0.3.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.2.0...v0.3.0) (2025-06-13)
 
 
