@@ -52,6 +52,11 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/rucio"
           git apply "$GITHUB_WORKSPACE/ci/rucio/expose_ports.patch"
+          ls ${{ github.workspace }}
+          ls ${{ github.workspace }}/rucio
+          ls ${{ github.workspace }}/rucio/etc
+          ls ${{ github.workspace }}/rucio/etc/docker/dev/docker-compose.yml
+
 
       - name: Run docker compose
         uses: hoverkraft-tech/compose-action@v2.0.1
