@@ -52,11 +52,6 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/rucio"
           git apply "$GITHUB_WORKSPACE/ci/rucio/expose_ports.patch"
-          ls ${{ github.workspace }}
-          ls ${{ github.workspace }}/rucio
-          ls ${{ github.workspace }}/rucio/etc
-          ls ${{ github.workspace }}/rucio/etc/docker/dev/docker-compose.yml
-
 
       - name: Run docker compose
         uses: hoverkraft-tech/compose-action@v2.2.0
@@ -64,7 +59,7 @@ jobs:
           compose-file: "${{ github.workspace }}/rucio/etc/docker/dev/docker-compose.yml"
 
       - name: Configure Rucio and populate with test data.
-        run: docker exec -it dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
+        run: docker exec dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
 
       - uses: actions/setup-python@v4
         with:
