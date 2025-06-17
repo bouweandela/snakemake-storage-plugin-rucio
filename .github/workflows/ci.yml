@@ -81,8 +81,8 @@ jobs:
 
       - name: Check Rucio service availability
         run: |
-          rucio --verbose ping
-          rucio --verbose whoami
+          poetry run rucio --verbose ping
+          poetry run rucio --verbose whoami
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
 
