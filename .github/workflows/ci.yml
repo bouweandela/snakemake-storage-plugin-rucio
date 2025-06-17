@@ -59,7 +59,7 @@ jobs:
 
 
       - name: Run docker compose
-        uses: hoverkraft-tech/compose-action@v2.0.1
+        uses: hoverkraft-tech/compose-action@v2.2.0
         with:
           compose-file: "${{ github.workspace }}/rucio/etc/docker/dev/docker-compose.yml"
 
