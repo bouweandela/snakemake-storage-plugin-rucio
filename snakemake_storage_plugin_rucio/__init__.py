@@ -191,15 +191,29 @@ class StorageProvider(StorageProviderBase):
                 valid=False,
                 reason=f"cannot be parsed as URL ({exc})",
             )
-        # Accept both rucio://scope/file and rucio:/scope/file.
-        path_elements = parsed.path.lstrip("/").split("/")
-        if (bool(parsed.netloc) and len(path_elements) == 1) or (
-            not parsed.netloc and len(path_elements) == 2  # noqa: PLR2004
-        ):
+
+        if parsed.scheme in ("rucio", ""):
+            # Acceptable forms:
+            # - rucio://scope/file
+            # - rucio:/scope/file
+            # - /scope/file
+            # - scope/file
+            path_elements = parsed.path.lstrip("/").split("/")
+            if (bool(parsed.netloc) and len(path_elements) == 1) or (
+                not parsed.netloc and len(path_elements) == 2  # noqa: PLR2004
+            ):
+                return StorageQueryValidationResult(
+                    query=query,
+                    valid=True,
+                )
+
+        # Accept any valid URL, to be used when retrieve=False.
+        if parsed.scheme and parsed.netloc:
             return StorageQueryValidationResult(
                 query=query,
                 valid=True,
             )
+
         return StorageQueryValidationResult(
             query=query,
             valid=False,
@@ -220,13 +234,24 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         if not self.is_valid_query():
             raise ValueError(self.query)
         parsed = urlparse(self.query)
-        # Accept both rucio://scope/file and rucio:/scope/file.
-        path_elements = parsed.path.lstrip("/").split("/")
-        if parsed.netloc:
-            self.scope = parsed.netloc
-            self.file = path_elements[0]
+        if parsed.scheme in ("rucio", ""):
+            # Acceptable forms:
+            # - rucio://scope/file
+            # - rucio:/scope/file
+            # - /scope/file
+            # - scope/file
+            path_elements = parsed.path.lstrip("/").split("/")
+            if parsed.netloc:
+                self.scope = parsed.netloc
+                self.file = path_elements[0]
+            else:
+                self.scope, self.file = path_elements
         else:
-            self.scope, self.file = path_elements
+            # When retrieve=False, the query is set to a URL and there is no
+            # way to extract the scope and file from it.
+            self.scope = ""
+            self.file = ""
+
         if not self.retrieve:
             streaming_url = self._get_streaming_url()
             if streaming_url is not None:
