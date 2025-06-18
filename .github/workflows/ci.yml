@@ -93,11 +93,13 @@ jobs:
 
       - name: Check Rucio service availability
         run: |
+          set +x
           poetry run rucio --verbose ping
           poetry run rucio --verbose whoami
           poetry run rucio --verbose did list test:* --filter type=file
           poetry run rucio --verbose replica list file test:file1
           poetry run rucio --verbose download test:file1
+          XrdSecDEBUG=1 xrdfs root://localhost:1094 stat //rucio/test/80/25/file1
           XrdSecDEBUG=1 xrdfs root://xrd1:1094 stat //rucio/test/80/25/file1
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
