@@ -62,7 +62,9 @@ jobs:
         run: docker exec dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
 
       - name: Copy trusted certificate authorities
-        run: docker cp dev-rucio-1:/etc/grid-security/certificates /etc/grid-security/certificates
+        run: |
+          mkdir /etc/grid-security
+          docker cp dev-rucio-1:/etc/grid-security/certificates /etc/grid-security
 
       - uses: actions/setup-python@v4
         with:
