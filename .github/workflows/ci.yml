@@ -63,8 +63,8 @@ jobs:
 
       - name: Copy trusted certificate authorities
         run: |
-          mkdir /etc/grid-security
-          docker cp dev-rucio-1:/etc/grid-security/certificates /etc/grid-security
+          mkdir -p etc/grid-security
+          docker cp dev-rucio-1:/etc/grid-security/certificates etc/grid-security
 
       - uses: actions/setup-python@v4
         with:
@@ -90,13 +90,13 @@ jobs:
           poetry run rucio --verbose whoami
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
-          X509_CERT_DIR: "/etc/grid-security/certificates"
+          X509_CERT_DIR: "etc/grid-security/certificates"
 
       - name: Run pytest
         run: poetry run coverage run -m pytest tests/tests.py
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
-          X509_CERT_DIR: "/etc/grid-security/certificates"
+          X509_CERT_DIR: "etc/grid-security/certificates"
 
       - name: Run Coverage
         run: poetry run coverage report -m
