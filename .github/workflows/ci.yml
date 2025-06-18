@@ -95,6 +95,8 @@ jobs:
         run: |
           poetry run rucio --verbose ping
           poetry run rucio --verbose whoami
+          poetry run rucio replica list file test:file1
+          XrdSecDEBUG=1 xrdfs root://xrd1:1094 stat //rucio/test/80/25/file1
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
           X509_CERT_DIR: "etc/grid-security/certificates"
