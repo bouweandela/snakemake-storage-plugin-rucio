@@ -100,7 +100,7 @@ jobs:
           X509_CERT_DIR: "etc/grid-security/certificates"
 
       - name: Run pytest
-        run: poetry run coverage run -m pytest tests/tests.py
+        run: poetry run coverage run -m pytest --log-level debug tests/tests.py
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
           X509_CERT_DIR: "etc/grid-security/certificates"
