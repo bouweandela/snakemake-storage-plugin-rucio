@@ -67,6 +67,11 @@ jobs:
           docker cp dev-rucio-1:/etc/grid-security/certificates etc/grid-security
           docker cp dev-rucio-1:/tmp/x509up_u0 /tmp
 
+      - name: Install XrootD client
+        run: |
+          sudo apt-get update
+          sudo apt-get install xrootd-client
+
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
