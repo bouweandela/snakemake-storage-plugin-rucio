@@ -48,10 +48,11 @@ jobs:
           ref: '37.5.0'
           path: 'rucio'
 
-      - name: Expose Rucio service
+      - name: Expose Rucio and XrootD service
         run: |
           cd "$GITHUB_WORKSPACE/rucio"
           git apply "$GITHUB_WORKSPACE/ci/rucio/expose_ports.patch"
+          echo "127.0.0.1	xrd1" | sudo tee -a /etc/hosts
 
       - name: Run docker compose
         uses: hoverkraft-tech/compose-action@v2.2.0
