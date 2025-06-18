@@ -61,6 +61,9 @@ jobs:
       - name: Configure Rucio and populate with test data.
         run: docker exec dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
 
+      - name: Copy trusted certificate authorities
+        run: docker cp dev-rucio-1:/etc/grid-security/certificates /etc/grid-security/certificates
+
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -85,11 +88,13 @@ jobs:
           poetry run rucio --verbose whoami
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
+          X509_CERT_DIR: "/etc/grid-security/certificates"
 
       - name: Run pytest
         run: poetry run coverage run -m pytest tests/tests.py
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
+          X509_CERT_DIR: "/etc/grid-security/certificates"
 
       - name: Run Coverage
         run: poetry run coverage report -m
