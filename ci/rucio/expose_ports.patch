@@ -1,5 +1,5 @@
 diff --git a/etc/docker/dev/docker-compose.yml b/etc/docker/dev/docker-compose.yml
-index f77e1077f..5c98da07b 100644
+index f77e1077f..50ee35da7 100644
 --- a/etc/docker/dev/docker-compose.yml
 +++ b/etc/docker/dev/docker-compose.yml
 @@ -61,6 +61,8 @@ services:
@@ -11,3 +11,12 @@ index f77e1077f..5c98da07b 100644
 
    # ------------------------------------------------------------------
    # Database, MQ, metrics, and other external services
+@@ -220,6 +222,8 @@ services:
+       nofile:
+         soft: 10240
+         hard: 10240
++    ports:
++      - "127.0.0.1:1094:1094"
+
+   xrd2:
+     container_name: dev-xrd2-1
