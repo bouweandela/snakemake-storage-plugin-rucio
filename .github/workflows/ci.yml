@@ -61,10 +61,11 @@ jobs:
       - name: Configure Rucio and populate with test data.
         run: docker exec dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
 
-      - name: Copy trusted certificate authorities
+      - name: Copy certificates
         run: |
           mkdir -p etc/grid-security
           docker cp dev-rucio-1:/etc/grid-security/certificates etc/grid-security
+          docker cp dev-rucio-1:/tmp/x509up_u0 /tmp
 
       - uses: actions/setup-python@v4
         with:
