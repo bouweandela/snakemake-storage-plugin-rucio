@@ -116,12 +116,3 @@ jobs:
 
       - name: Run Coverage
         run: poetry run coverage report -m
-
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-actor: true
-        env:
-          RUCIO_CONFIG: "ci/rucio/rucio.cfg"
-          X509_CERT_DIR: "etc/grid-security/certificates"
-          X509_USER_PROXY: "/tmp/x509up_u0"
