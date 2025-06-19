@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib
+import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,9 +15,37 @@ from snakemake_interface_storage_plugins.tests import TestStorageBase
 
 from snakemake_storage_plugin_rucio import StorageProvider, StorageProviderSettings
 
-TEST_SCOPE = "test"
-TEST_FILE = "file1"
-TEST_RSE = "XRD1"
+
+def _load_site_config() -> dict:
+    """Load site specific configuration from site-config.json.
+
+    The file should be located in the same directory as this module and allows
+    for testing with a different Rucio server than the Rucio demo deployment
+    used in CI.
+    """
+    # Default values as provided by the Rucio demo deployment.
+    config = {
+        "scope": "test",
+        "file": "file1",
+        "download_rse": "XRD1",
+        "upload_rse": "XRD1",
+    }
+    traversible = importlib.resources.files() / "site-config.json"
+
+    try:
+        site_config = json.loads(traversible.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        pass
+    else:
+        for key, value in site_config.items():
+            if key not in config:
+                msg = f"Unknown key {key} in site-config.json"
+                raise ValueError(msg)
+            config[key] = value
+    return config
+
+
+SITE_CONFIG = _load_site_config()
 
 
 class TestStorageRucioBase(TestStorageBase):
@@ -32,8 +62,8 @@ class TestStorageRucioBase(TestStorageBase):
     ) -> StorageProviderSettingsBase | None:
         """Create StorageProviderSettings of this plugin for testing."""
         return StorageProviderSettings(
-            download_rse=TEST_RSE,
-            upload_rse=TEST_RSE,
+            download_rse=SITE_CONFIG["download_rse"],
+            upload_rse=SITE_CONFIG["upload_rse"],
         )
 
 
@@ -53,11 +83,11 @@ class TestStorageRead(TestStorageRucioBase):
         """Return a query."""
         # If retrieve_only is True, this should be a query that
         # is present in the storage, as it will not be created.
-        return f"rucio://{TEST_SCOPE}/{TEST_FILE}"
+        return f"rucio://{SITE_CONFIG['scope']}/{SITE_CONFIG['file']}"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
-        return "rucio://{TEST_SCOPE}/abc.txt"
+        return f"rucio://{SITE_CONFIG['scope']}/abc.txt"
 
 
 @pytest.mark.skipif(
@@ -75,8 +105,8 @@ class TestStorageWrite(TestStorageRucioBase):
     def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query for a new file with a unique name."""
         file = f"snakemake-storage-plugin-test-{datetime.now(UTC):%Y%m%dT%H%M%S%f}.txt"
-        return f"rucio://{TEST_SCOPE}/{file}"
+        return f"rucio://{SITE_CONFIG['scope']}/{file}"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
-        return f"rucio://{TEST_SCOPE}/abc.txt"
+        return f"rucio://{SITE_CONFIG['scope']}/abc.txt"
