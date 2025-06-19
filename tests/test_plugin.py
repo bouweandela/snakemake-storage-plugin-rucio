@@ -31,6 +31,7 @@ def _load_site_config() -> dict:
         "file": "file1",
         "download_rse": "XRD1",
         "upload_rse": "XRD1",
+        "upload_dataset": "dataset1",
         "streaming_protocol": "root",
     }
     traversible = Path(__file__).parent / "site-config.json"
@@ -86,6 +87,7 @@ class TestStorageRucioBase(TestStorageBase):
         return StorageProviderSettings(
             download_rse=SITE_CONFIG["download_rse"],
             upload_rse=SITE_CONFIG["upload_rse"],
+            upload_dataset=SITE_CONFIG["upload_dataset"],
             cache_scope=False,
         )
 

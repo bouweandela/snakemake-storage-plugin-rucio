@@ -103,6 +103,16 @@ StorageProviderSettings = dataclasses.make_dataclass(
             ),
         ),
         (
+            "upload_dataset",
+            str,
+            dataclasses.field(
+                default=None,
+                metadata={
+                    "help": "Rucio dataset to attach files to on upload.",
+                },
+            ),
+        ),
+        (
             "cache_scope",
             bool,
             dataclasses.field(
@@ -404,11 +414,17 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
         if rse is None:
             msg = "Please specify the `upload_rse`."
             raise ValueError(msg)
+        dataset = self.provider.settings.upload_dataset
+        if dataset is None:
+            msg = "Please specify the `upload_dataset`."
+            raise ValueError(msg)
         self.provider.uclient.upload(
             [
                 {
                     "path": self.local_path(),
                     "did_scope": self.scope,
+                    "dataset_scope": self.scope,
+                    "dataset_name": dataset,
                     "rse": self.provider.settings.upload_rse,
                     "register_after_upload": True,
                 },
