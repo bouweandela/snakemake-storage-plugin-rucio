@@ -61,6 +61,7 @@ SITE_CONFIG = _load_site_config()
         ("root://xrd1:1094//rucio/test/7c/69/file1.txt", True),
         ("x:/y/z", False),
         ("rucio://scope", False),
+        (1, False),
     ],
 )
 def test_query_validation(query: str, expected: bool) -> None:  # noqa: FBT001
@@ -125,6 +126,20 @@ class TestStorageNoRetrieve(TestStorageRucioBase):
         assert obj.query.startswith(f"{SITE_CONFIG['streaming_protocol']}://")
         assert obj.query.endswith(f"{SITE_CONFIG['file']}")
         assert obj.local_path() == obj.query
+
+
+class TestStorageNoRetrieveWithScopeCache(TestStorageNoRetrieve):
+    """Test retrieve=False with caching of the entire scope enabled."""
+
+    def get_storage_provider_settings(
+        self,
+    ) -> StorageProviderSettingsBase | None:
+        """Create StorageProviderSettings with cache_scope enabled."""
+        return StorageProviderSettings(
+            download_rse=SITE_CONFIG["download_rse"],
+            upload_rse=SITE_CONFIG["upload_rse"],
+            cache_scope=True,
+        )
 
 
 @pytest.mark.skipif(
