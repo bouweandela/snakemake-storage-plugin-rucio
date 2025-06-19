@@ -38,7 +38,6 @@ dev = [
 repository = "https://github.com/bouweandela/snakemake-storage-plugin-rucio"
 documentation = "https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html"
 
-
 [tool.coverage.run]
 source = ["snakemake_storage_plugin_rucio"]
 branch = true
@@ -61,3 +60,6 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["snakemake-storage-plugin-rucio"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

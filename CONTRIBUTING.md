@@ -29,7 +29,7 @@ pre-commit run --all
 The tests can be run with the command:
 
 ```bash
-pytest tests/tests.py --cov
+pytest --cov
 ```
 
 If no [`RUCIO_CONFIG`](https://rucio.github.io/documentation/user/configuring_the_client#rucio_config)

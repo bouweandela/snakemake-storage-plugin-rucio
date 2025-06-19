@@ -102,13 +102,12 @@ jobs:
       - name: Run tests
         run: >-
           poetry run pytest
-            --log-level debug
-            --cov
-            --cov-branch
-            --cov-report=xml
-            --junitxml=junit.xml
-            -o junit_family=legacy
-            tests/tests.py
+          --log-level debug
+          --cov
+          --cov-branch
+          --cov-report=xml
+          --junitxml=junit.xml
+          -o junit_family=legacy
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
           X509_CERT_DIR: "/etc/grid-security/certificates"
