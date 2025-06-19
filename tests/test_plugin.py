@@ -86,6 +86,7 @@ class TestStorageRucioBase(TestStorageBase):
         return StorageProviderSettings(
             download_rse=SITE_CONFIG["download_rse"],
             upload_rse=SITE_CONFIG["upload_rse"],
+            cache_scope=False,
         )
 
 
@@ -147,6 +148,20 @@ class TestStorageRead(TestStorageRucioBase):
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
         return f"rucio://{SITE_CONFIG['scope']}/abc.txt"
+
+
+class TestStorageReadWithScopeCache(TestStorageRead):
+    """Read test with caching of the entire scope."""
+
+    def get_storage_provider_settings(
+        self,
+    ) -> StorageProviderSettingsBase | None:
+        """Create StorageProviderSettings with cache_scope enabled."""
+        return StorageProviderSettings(
+            download_rse=SITE_CONFIG["download_rse"],
+            upload_rse=SITE_CONFIG["upload_rse"],
+            cache_scope=True,
+        )
 
 
 @pytest.mark.skipif(
