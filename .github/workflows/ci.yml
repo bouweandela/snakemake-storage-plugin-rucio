@@ -91,6 +91,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --extras dev
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          limit-access-to-actor: true
+
       - name: Check Rucio service availability
         run: |
           set +x
