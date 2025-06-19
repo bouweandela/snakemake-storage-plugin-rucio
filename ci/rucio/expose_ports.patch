@@ -1,0 +1,22 @@
+diff --git a/etc/docker/dev/docker-compose.yml b/etc/docker/dev/docker-compose.yml
+index f77e1077f..50ee35da7 100644
+--- a/etc/docker/dev/docker-compose.yml
++++ b/etc/docker/dev/docker-compose.yml
+@@ -61,6 +61,8 @@ services:
+       - REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+       - RUCIO_SOURCE_DIR=/rucio_source
+       - RDBMS
++    ports:
++      - "127.0.0.1:8000:443"
+
+   # ------------------------------------------------------------------
+   # Database, MQ, metrics, and other external services
+@@ -220,6 +222,8 @@ services:
+       nofile:
+         soft: 10240
+         hard: 10240
++    ports:
++      - "127.0.0.1:1094:1094"
+
+   xrd2:
+     container_name: dev-xrd2-1

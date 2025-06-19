@@ -13,6 +13,10 @@ from snakemake_interface_storage_plugins.tests import TestStorageBase
 
 from snakemake_storage_plugin_rucio import StorageProvider, StorageProviderSettings
 
+TEST_SCOPE = "test"
+TEST_FILE = "file1"
+TEST_RSE = "XRD1"
+
 
 class TestStorageRucioBase(TestStorageBase):
     """Base class configuring the tests."""
@@ -28,8 +32,8 @@ class TestStorageRucioBase(TestStorageBase):
     ) -> StorageProviderSettingsBase | None:
         """Create StorageProviderSettings of this plugin for testing."""
         return StorageProviderSettings(
-            download_rse="NIKHEF",
-            upload_rse="NIKHEF",
+            download_rse=TEST_RSE,
+            upload_rse=TEST_RSE,
         )
 
 
@@ -49,11 +53,11 @@ class TestStorageRead(TestStorageRucioBase):
         """Return a query."""
         # If retrieve_only is True, this should be a query that
         # is present in the storage, as it will not be created.
-        return "rucio://testing/test.txt"
+        return f"rucio://{TEST_SCOPE}/{TEST_FILE}"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
-        return "rucio://testing/abc.txt"
+        return "rucio://{TEST_SCOPE}/abc.txt"
 
 
 @pytest.mark.skipif(
@@ -71,9 +75,8 @@ class TestStorageWrite(TestStorageRucioBase):
     def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query for a new file with a unique name."""
         file = f"snakemake-storage-plugin-test-{datetime.now(UTC):%Y%m%dT%H%M%S%f}.txt"
-        scope = "testing"
-        return f"rucio://{scope}/{file}"
+        return f"rucio://{TEST_SCOPE}/{file}"
 
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
-        return "rucio://testing/abc.txt"
+        return f"rucio://{TEST_SCOPE}/abc.txt"
