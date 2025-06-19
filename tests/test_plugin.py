@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 from datetime import UTC, datetime
@@ -34,7 +33,7 @@ def _load_site_config() -> dict:
         "upload_rse": "XRD1",
         "streaming_protocol": "root",
     }
-    traversible = importlib.resources.files() / "site-config.json"
+    traversible = Path(__file__).parent / "site-config.json"
 
     try:
         site_config = json.loads(traversible.read_text(encoding="utf-8"))
