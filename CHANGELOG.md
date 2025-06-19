@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.3.1...v0.4.0) (2025-06-19)
+
+
+### Features
+
+* attach to dataset on upload ([#33](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/33)) ([485111a](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/485111a6186844062c3582156fabf2bc0cd54948))
+
+
+### Documentation
+
+* add Codecov badge ([de06a42](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/de06a42989829219c470773a35b5f1a5166e8a4b))
+
 ## [0.3.1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.3.0...v0.3.1) (2025-06-17)
 
 
