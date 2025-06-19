@@ -10,8 +10,11 @@ from pathlib import Path
 
 import pytest
 from snakemake_interface_storage_plugins.settings import StorageProviderSettingsBase
-from snakemake_interface_storage_plugins.storage_provider import StorageProviderBase
-from snakemake_interface_storage_plugins.tests import TestStorageBase
+from snakemake_interface_storage_plugins.storage_provider import (
+    StorageProviderBase,
+    StorageQueryValidationResult,
+)
+from snakemake_interface_storage_plugins.tests import TestStorageBase, logger
 
 from snakemake_storage_plugin_rucio import StorageProvider, StorageProviderSettings
 
@@ -29,6 +32,7 @@ def _load_site_config() -> dict:
         "file": "file1",
         "download_rse": "XRD1",
         "upload_rse": "XRD1",
+        "streaming_protocol": "root",
     }
     traversible = importlib.resources.files() / "site-config.json"
 
@@ -48,6 +52,25 @@ def _load_site_config() -> dict:
 SITE_CONFIG = _load_site_config()
 
 
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("rucio://test/file1.txt", True),
+        ("rucio:/test/file1.txt", True),
+        ("/scope/file1.txt", True),
+        ("scope/file1.txt", True),
+        ("root://xrd1:1094//rucio/test/7c/69/file1.txt", True),
+        ("x:/y/z", False),
+        ("rucio://scope", False),
+    ],
+)
+def test_query_validation(query: str, expected: bool) -> None:  # noqa: FBT001
+    """Test query validation."""
+    res = StorageProvider.is_valid_query(query)
+    assert isinstance(res, StorageQueryValidationResult)
+    assert bool(res) == expected
+
+
 class TestStorageRucioBase(TestStorageBase):
     """Base class configuring the tests."""
 
@@ -65,6 +88,43 @@ class TestStorageRucioBase(TestStorageBase):
             download_rse=SITE_CONFIG["download_rse"],
             upload_rse=SITE_CONFIG["upload_rse"],
         )
+
+
+@pytest.mark.skipif(
+    "RUCIO_CONFIG" not in os.environ,
+    reason="requires a Rucio configuration",
+)
+class TestStorageNoRetrieve(TestStorageRucioBase):
+    """Read tests."""
+
+    __test__ = True
+    retrieve_only = True  # set to True if the storage is read-only
+    store_only = False  # set to True if the storage is write-only
+    delete = False  # set to False if the storage does not support deletion
+
+    def get_query(self, tmp_path: Path) -> str:  # noqa: ARG002
+        """Return a query."""
+        # If retrieve_only is True, this should be a query that
+        # is present in the storage, as it will not be created.
+        return f"rucio://{SITE_CONFIG['scope']}/{SITE_CONFIG['file']}"
+
+    def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
+        """Return a query that is not present in the storage."""
+        return f"rucio://{SITE_CONFIG['scope']}/abc.txt"
+
+    def test_storage(self, tmp_path: Path) -> None:
+        """Override the test_storage method to test just getting the URL."""
+        provider = self.get_storage_provider_cls()(
+            logger=logger,
+            local_prefix=Path(tmp_path) / "local_prefix",
+            settings=self.get_storage_provider_settings(),
+            retrieve=False,
+        )
+
+        obj = provider.object(self.get_query(tmp_path))
+        assert obj.query.startswith(f"{SITE_CONFIG['streaming_protocol']}://")
+        assert obj.query.endswith(f"{SITE_CONFIG['file']}")
+        assert obj.local_path() == obj.query
 
 
 @pytest.mark.skipif(

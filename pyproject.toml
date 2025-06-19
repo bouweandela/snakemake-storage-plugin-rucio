@@ -57,6 +57,13 @@ ignore = [
     "D213",
     "E501",    # Disable line-too-long as this is taken care of by the formatter.
 ]
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "S101",     # Use of assert in tests code is required.
+    "T20",      # Printing things can help with debugging tests.
+    "SLF001",   # Testing private members is ok
+    "PLR2004",  # Magic values in tests are fine.
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["snakemake-storage-plugin-rucio"]

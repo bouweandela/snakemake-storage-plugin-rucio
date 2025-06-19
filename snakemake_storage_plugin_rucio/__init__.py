@@ -152,7 +152,7 @@ class StorageProvider(StorageProviderBase):
             ExampleQuery(
                 query="rucio://myscope/myfile.txt",
                 type=QueryType.ANY,
-                description="A file in a Rucio scope.",
+                description='The file "myfile.txt" in Rucio scope "myscope".',
             ),
         ]
 
@@ -198,7 +198,7 @@ class StorageProvider(StorageProviderBase):
             # - rucio:/scope/file
             # - /scope/file
             # - scope/file
-            path_elements = parsed.path.lstrip("/").split("/")
+            path_elements = [p for p in parsed.path.strip("/").split("/") if p]
             if (bool(parsed.netloc) and len(path_elements) == 1) or (
                 not parsed.netloc and len(path_elements) == 2  # noqa: PLR2004
             ):
@@ -206,9 +206,8 @@ class StorageProvider(StorageProviderBase):
                     query=query,
                     valid=True,
                 )
-
-        # Accept any valid URL, to be used when retrieve=False.
-        if parsed.scheme and parsed.netloc:
+        elif parsed.scheme and parsed.netloc:
+            # Accept any valid URL, to be used when retrieve=False.
             return StorageQueryValidationResult(
                 query=query,
                 valid=True,
