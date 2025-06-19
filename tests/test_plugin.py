@@ -15,7 +15,11 @@ from snakemake_interface_storage_plugins.storage_provider import (
 )
 from snakemake_interface_storage_plugins.tests import TestStorageBase, logger
 
-from snakemake_storage_plugin_rucio import StorageProvider, StorageProviderSettings
+from snakemake_storage_plugin_rucio import (
+    StorageObject,
+    StorageProvider,
+    StorageProviderSettings,
+)
 
 
 def _load_site_config() -> dict:
@@ -82,7 +86,7 @@ class TestStorageRucioBase(TestStorageBase):
 
     def get_storage_provider_settings(
         self,
-    ) -> StorageProviderSettingsBase | None:
+    ) -> StorageProviderSettingsBase:
         """Create StorageProviderSettings of this plugin for testing."""
         return StorageProviderSettings(
             download_rse=SITE_CONFIG["download_rse"],
@@ -90,6 +94,23 @@ class TestStorageRucioBase(TestStorageBase):
             upload_dataset=SITE_CONFIG["upload_dataset"],
             cache_scope=False,
         )
+
+    def get_storage_object(
+        self,
+        tmp_path: Path,
+        query: str | None = None,
+        **provider_kwargs,  # noqa: ANN003
+    ) -> StorageObject:
+        """Create a StorageObject for testing."""
+        kwargs = {
+            "logger": logger,
+            "local_prefix": tmp_path / "local_prefix",
+            "settings": self.get_storage_provider_settings(),
+        }
+        kwargs.update(provider_kwargs)
+        provider = self.get_storage_provider_cls()(**kwargs)
+        query = self.get_query(tmp_path) if query is None else query
+        return provider.object(query)
 
 
 @pytest.mark.skipif(
@@ -116,14 +137,7 @@ class TestStorageNoRetrieve(TestStorageRucioBase):
 
     def test_storage(self, tmp_path: Path) -> None:
         """Override the test_storage method to test just getting the URL."""
-        provider = self.get_storage_provider_cls()(
-            logger=logger,
-            local_prefix=Path(tmp_path) / "local_prefix",
-            settings=self.get_storage_provider_settings(),
-            retrieve=False,
-        )
-
-        obj = provider.object(self.get_query(tmp_path))
+        obj = self.get_storage_object(tmp_path, retrieve=False)
         assert obj.query.startswith(f"{SITE_CONFIG['streaming_protocol']}://")
         assert obj.query.endswith(f"{SITE_CONFIG['file']}")
         assert obj.local_path() == obj.query
@@ -186,3 +200,37 @@ class TestStorageWrite(TestStorageRucioBase):
     def get_query_not_existing(self, tmp_path: Path) -> str:  # noqa: ARG002
         """Return a query that is not present in the storage."""
         return f"rucio://{SITE_CONFIG['scope']}/abc.txt"
+
+    def test_storage_no_overwrite(self, tmp_path: Path) -> None:
+        """Test that an error is raised if a file already exists."""
+        scope = SITE_CONFIG["scope"]
+        file = SITE_CONFIG["file"]
+        obj = self.get_storage_object(tmp_path, query=f"rucio://{scope}/{file}")
+        with pytest.raises(
+            ValueError, match=f'File "{scope}/{file}" already exists on Rucio'
+        ):
+            obj.store_object()
+
+    def test_storage_no_dataset(self, tmp_path: Path) -> None:
+        """Test that an error is raised if no dataset is specified."""
+        settings = self.get_storage_provider_settings()
+        settings.upload_dataset = None
+        obj = self.get_storage_object(tmp_path, settings=settings)
+        with pytest.raises(ValueError, match="Please specify the `upload_dataset`."):
+            obj.store_object()
+
+    def test_storage_no_rse(self, tmp_path: Path) -> None:
+        """Test that an error is raised if no RSE is specified."""
+        settings = self.get_storage_provider_settings()
+        settings.upload_rse = None
+        obj = self.get_storage_object(tmp_path, settings=settings)
+        with pytest.raises(ValueError, match="Please specify the `upload_rse`."):
+            obj.store_object()
+
+    def test_no_delete(self, tmp_path: Path) -> None:
+        """Test that deletion is not implemented."""
+        obj = self.get_storage_object(tmp_path)
+        with pytest.raises(
+            NotImplementedError, match="Rucio does not support deleting files."
+        ):
+            obj.remove()

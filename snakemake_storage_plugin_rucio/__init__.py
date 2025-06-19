@@ -404,37 +404,39 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             num_threads=1,
         )
 
-    @retry_decorator
     def store_object(self) -> None:
         """Upload the file."""
         if self.exists():
-            msg = f'File "{self.scope}:{self.file}" already exists on Rucio'
+            msg = f'File "{self.scope}/{self.file}" already exists on Rucio'
             raise ValueError(msg)
-        rse = self.provider.settings.upload_rse
-        if rse is None:
+        if self.provider.settings.upload_rse is None:
             msg = "Please specify the `upload_rse`."
             raise ValueError(msg)
-        dataset = self.provider.settings.upload_dataset
-        if dataset is None:
+        if self.provider.settings.upload_dataset is None:
             msg = "Please specify the `upload_dataset`."
             raise ValueError(msg)
+        self._store_object()
+
+    @retry_decorator
+    def _store_object(self) -> None:
+        """Upload the file."""
         self.provider.uclient.upload(
             [
                 {
                     "path": self.local_path(),
                     "did_scope": self.scope,
                     "dataset_scope": self.scope,
-                    "dataset_name": dataset,
+                    "dataset_name": self.provider.settings.upload_dataset,
                     "rse": self.provider.settings.upload_rse,
                     "register_after_upload": True,
                 },
             ],
         )
 
-    @retry_decorator
     def remove(self) -> None:
         """Remove the file from the storage."""
-        raise NotImplementedError
+        msg = "Rucio does not support deleting files."
+        raise NotImplementedError(msg)
 
     @retry_decorator
     def list_candidate_matches(self) -> Iterable[str]:
