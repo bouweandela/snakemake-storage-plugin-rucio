@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.0...v0.4.1) (2025-06-20)
+
+
+### Documentation
+
+* improve documentation ([#35](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/35)) ([78dc304](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/78dc30445cfaa32ec2f264047ebcfe15b91876ff))
+
 ## [0.4.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.3.1...v0.4.0) (2025-06-19)
 
 
