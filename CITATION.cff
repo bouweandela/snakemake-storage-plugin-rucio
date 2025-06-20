@@ -24,6 +24,7 @@ url: >-
   https://snakemake.github.io/snakemake-plugin-catalog/plugins/storage/rucio.html
 abstract: >-
   A Snakemake storage plugin that handles files available through Rucio.
+doi: 10.5281/zenodo.15657667
 keywords:
   - snakemake
   - plugin
