@@ -38,11 +38,25 @@ will be skipped. The configuration file needs to contain information from the
 [client](https://rucio.github.io/documentation/operator/configuration_parameters#client_config)
 section. At least `rucio_host`, `auth_host`, `account`, and `auth_type` are required.
 
-# Commit messages
+The tests have been parametrized with default parameters matching the
+[Rucio demo deployment](https://rucio.cern.ch/documentation/operator/setting_up_demo#using-the-environment-including-storage)
+[used in CI](.github/workflows/ci.yml).
+To use another Rucio deployment for testing, you can create a file
+`tests/site-config.json` to override the default parameters. For example:
+```json
+{
+    "scope": "testing",
+    "file": "test101.txt",
+    "download_rse": null,
+    "upload_rse": "NIKHEF"
+}
+```
+
+# Commit messages and merges
 
 When committing, always use [Conventional Commit Messages](https://www.conventionalcommits.org/).
 These are used by the [Release Please](https://github.com/googleapis/release-please) action
-to generate the changelog.
+to generate the changelog. Use squash merges to keep the commit history clean.
 
 # Making a release
 
