@@ -17,10 +17,10 @@ keywords = [
     "snakemake",
     "plugin",
     "storage",
-    "rucio",
+    "rucio-clients",
 ]
 dependencies = [
-    "rucio>=36",
+    "rucio-clients>=36",
     "snakemake>=9.5.1",
     "snakemake-interface-common>=1.18.0",
     "snakemake-interface-storage-plugins>=4.2.1",
