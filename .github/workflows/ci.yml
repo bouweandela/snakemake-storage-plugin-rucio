@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: 'rucio/rucio'
-          ref: '37.5.0'
+          ref: '39.2.0'
           path: '.rucio'
 
       - name: Expose Rucio and XrootD service
@@ -63,12 +63,30 @@ jobs:
           compose-flags: "--profile storage"
 
       - name: Configure Rucio and populate with test data.
-        run: docker exec dev-rucio-1 /opt/rucio/tools/run_tests.sh -ir
+        shell: bash
+        # Copied from https://github.com/rucio/rucio/blob/1bda46db14ae8be01198e4e55f98c70b9edeffed/.github/workflows/integration_tests.yml#L141
+        run: |
+          docker exec -t dev-rucio-1 bash -c "
+            set -e
+            cd /rucio_source
+            cp etc/rse-accounts.cfg.template /opt/rucio/etc/rse-accounts.cfg
+            cp etc/rse-accounts.cfg.template /opt/rucio/etc/rse-accounts.cfg.template
+            cp etc/rse_repository.json /opt/rucio/etc/rse_repository.json
+            cp etc/rclone-init.cfg /opt/rucio/etc/rclone-init.cfg
+
+            # Create symlinks to the mounted SSH keys in standard locations
+            ln -sf pyproject.server.toml pyproject.toml
+            ln -sf /root/.ssh/ruciouser_sshkey /root/.ssh/id_rsa 2>/dev/null || true
+            ln -sf /root/.ssh/ruciouser_sshkey.pub /root/.ssh/id_rsa.pub 2>/dev/null || true
+
+            pip install --no-cache-dir -e /rucio_source
+            tools/run_tests.sh -ir
+          "
 
       - name: Copy certificates
         run: |
           sudo mkdir /etc/grid-security
-          sudo docker cp dev-rucio-1:/etc/grid-security/certificates /etc/grid-security
+          sudo docker cp dev-xrd1-1:/etc/grid-security/certificates /etc/grid-security
           docker cp dev-rucio-1:/tmp/x509up_u0 /tmp
 
       - name: Install XrootD client
@@ -89,13 +107,14 @@ jobs:
       - name: Install dependencies
         run: poetry install --extras dev
 
-      - name: Check Rucio service availability
+      - name: Check Rucio and XrootD service availability
         run: |
           set -x
           poetry run rucio --verbose ping
           poetry run rucio whoami
           poetry run rucio did list test:* --filter type=file
           poetry run rucio replica list file test:file1
+          poetry run rucio download test:file1
         env:
           RUCIO_CONFIG: "ci/rucio/rucio.cfg"
           X509_CERT_DIR: "/etc/grid-security/certificates"
