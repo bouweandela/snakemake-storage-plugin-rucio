@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.1...v0.4.2) (2026-02-25)
+
+
+### Bug Fixes
+
+* reduce dependency from the full rucio to rucio-clients ([#37](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/37)) ([7dce8be](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/7dce8be3511f3437f0fffb88e864955a542c1092))
+
 ## [0.4.1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.0...v0.4.1) (2025-06-20)
 
 
