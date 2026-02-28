@@ -249,3 +249,16 @@ class TestStorageWrite(TestStorageRucioBase):
             NotImplementedError, match="Rucio does not support deleting files."
         ):
             obj.remove()
+
+    def test_upload_with_different_local_filename(self, tmp_path: Path) -> None:
+        """Test that upload uses self.file as did_name even when local path has different filename."""
+        query = tmp_path / "target_file.txt"
+        obj = self.get_storage_object(query)
+        local_path = tmp_path / "different_file.txt"
+        local_path.write_text("content")
+        obj.set_local_path(local_path)
+
+        obj.store_object()
+
+        obj = self.get_storage_object(query)
+        assert obj.exists()
