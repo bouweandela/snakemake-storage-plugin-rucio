@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.2...v0.4.3) (2026-03-02)
+
+
+### Bug Fixes
+
+* upload under self.file did instead of letting it use local_path() basename ([#43](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/43)) ([d6b26f1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/d6b26f15bad10ab5e5812923cfac1f2b6121f120))
+
 ## [0.4.2](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.1...v0.4.2) (2026-02-25)
 
 
