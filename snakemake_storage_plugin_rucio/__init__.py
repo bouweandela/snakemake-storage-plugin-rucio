@@ -425,6 +425,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
                 {
                     "path": self.local_path(),
                     "did_scope": self.scope,
+                    "did_name": self.file,
                     "dataset_scope": self.scope,
                     "dataset_name": self.provider.settings.upload_dataset,
                     "rse": self.provider.settings.upload_rse,
