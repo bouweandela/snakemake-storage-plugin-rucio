@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import inspect
 import random
 import re
@@ -146,13 +147,13 @@ class StorageProvider(StorageProviderBase):
             if k in valid_client_args
         }
 
-        logger = get_logger()
-        self.client = rucio.client.Client(logger=logger, **client_kwargs)
+        self.logger = get_logger()
+        self.client = rucio.client.Client(logger=self.logger, **client_kwargs)
         self.dclient = rucio.client.downloadclient.DownloadClient(
-            self.client, logger=logger
+            self.client, logger=self.logger
         )
         self.uclient = rucio.client.uploadclient.UploadClient(
-            self.client, logger=logger
+            self.client, logger=self.logger
         )
 
     @classmethod
@@ -406,15 +407,31 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     def store_object(self) -> None:
         """Upload the file."""
-        if self.exists():
-            msg = f'File "{self.scope}/{self.file}" already exists on Rucio'
-            raise ValueError(msg)
         if self.provider.settings.upload_rse is None:
             msg = "Please specify the `upload_rse`."
             raise ValueError(msg)
         if self.provider.settings.upload_dataset is None:
             msg = "Please specify the `upload_dataset`."
             raise ValueError(msg)
+
+        try:
+            did_info = self.client.get_did(scope=self.scope, name=self.file)
+        except rucio.common.exception.DataIdentifierNotFound:
+            pass
+        else:
+            with self.local_path().open("rb") as fp:
+                m = hashlib.file_digest(fp, "md5")
+            if "md5" in did_info and did_info["md5"] == m.hexdigest():
+                self.provider.logger.debug(
+                    "File %s:%s with the same hash already exists on Rucio, skipping upload",
+                    self.scope,
+                    self.file,
+                )
+                # Nothing to do
+                return
+            msg = f'File "{self.scope}/{self.file}" already exists on Rucio'
+            raise ValueError(msg)
+
         self._store_object()
 
     @retry_decorator

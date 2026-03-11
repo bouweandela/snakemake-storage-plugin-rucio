@@ -221,6 +221,8 @@ class TestStorageWrite(TestStorageRucioBase):
         scope = SITE_CONFIG["scope"]
         file = SITE_CONFIG["file"]
         obj = self.get_storage_object(tmp_path, query=f"rucio://{scope}/{file}")
+        obj.local_path().parent.mkdir()
+        obj.local_path().write_text("content")
         with pytest.raises(
             ValueError, match=f'File "{scope}/{file}" already exists on Rucio'
         ):
@@ -261,3 +263,16 @@ class TestStorageWrite(TestStorageRucioBase):
 
         obj = self.get_storage_object(tmp_path, obj.query)
         assert obj.exists()
+
+    def test_upload_twice(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that uploading the same file second time is detected."""
+        obj = self.get_storage_object(tmp_path)
+        obj.local_path().parent.mkdir()
+        obj.local_path().write_text("content")
+
+        obj.store_object()
+        assert "already exists on Rucio" not in caplog.text
+        obj.store_object()
+        assert "already exists on Rucio" in caplog.text
