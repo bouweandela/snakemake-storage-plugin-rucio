@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.3...v0.5.0) (2026-03-11)
+
+
+### Features
+
+* make store_object no-op if the file is already uploaded ([#45](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/45)) ([f24f243](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/f24f243fbde00c4c15c49b7e3a72a91a80d8381f))
+
 ## [0.4.3](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.2...v0.4.3) (2026-03-02)
 
 
