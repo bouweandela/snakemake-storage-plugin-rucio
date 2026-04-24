@@ -7,6 +7,9 @@ import hashlib
 import inspect
 import random
 import re
+import os.path
+import shutil
+import tempfile
 from collections.abc import Iterable, Sequence
 from urllib.parse import urlparse
 
@@ -209,14 +212,10 @@ class StorageProvider(StorageProviderBase):
             # - rucio:/scope/file
             # - /scope/file
             # - scope/file
-            path_elements = [p for p in parsed.path.strip("/").split("/") if p]
-            if (bool(parsed.netloc) and len(path_elements) == 1) or (
-                not parsed.netloc and len(path_elements) == 2  # noqa: PLR2004
-            ):
-                return StorageQueryValidationResult(
-                    query=query,
-                    valid=True,
-                )
+            return StorageQueryValidationResult(
+                query=query,
+                valid=True,
+            )
         elif parsed.scheme and parsed.netloc:
             # Accept any valid URL, to be used when retrieve=False.
             return StorageQueryValidationResult(
@@ -253,7 +252,11 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             path_elements = parsed.path.lstrip("/").split("/")
             if parsed.netloc:
                 self.scope = parsed.netloc
-                self.file = path_elements[0]
+                self.orig_file = parsed.path
+                # Map '/' in the UNIX path onto '.' in Rucio DID.
+                # The '.' is escaped as '..', which, assuming one never
+                # uses '//', should avoid collisions.
+                self.file = parsed.path.lstrip("/").replace(".", "..").replace("/", ".")
             else:
                 self.scope, self.file = path_elements
         else:
@@ -343,7 +346,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
     def local_suffix(self) -> str:
         """Return a unique suffix for the local path, determined from self.query."""
-        return f"{self.scope}/{self.file}"
+        return f"{self.scope}/{self.orig_file}"
 
     def cleanup(self) -> None:
         """Perform local cleanup of any remainders of the storage object."""
@@ -392,18 +395,24 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     @retry_decorator
     def retrieve_object(self) -> None:
         """Download the file to self.local_path()."""
-        self.provider.dclient.download_dids(
-            [
-                {
-                    "base_dir": self.local_path().parent,
-                    "did": f"{self.scope}:{self.file}",
-                    "ignore_checksum": self.provider.settings.ignore_checksum,
-                    "no_subdir": True,
-                    "rse": self.provider.settings.download_rse,
-                },
-            ],
-            num_threads=1,
-        )
+        # Workaround downloadclient's inability to accept custom destination
+        # filename by downloading to a temporary directory first and then
+        # moving the file to its final destination
+        with tempfile.TemporaryDirectory(prefix='rucio_download_') as temp_dir:
+            self.provider.dclient.download_dids(
+                [
+                    {
+                        "base_dir": temp_dir,
+                        "did": f"{self.scope}:{self.file}",
+                        "ignore_checksum": self.provider.settings.ignore_checksum,
+                        "rse": self.provider.settings.download_rse,
+                    },
+                ],
+                num_threads=1,
+            )
+
+            self.local_path().parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(os.path.join(temp_dir, self.scope, self.file), self.local_path())
 
     def store_object(self) -> None:
         """Upload the file."""
