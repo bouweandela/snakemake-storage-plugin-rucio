@@ -212,10 +212,14 @@ class StorageProvider(StorageProviderBase):
             # - rucio:/scope/file
             # - /scope/file
             # - scope/file
-            return StorageQueryValidationResult(
-                query=query,
-                valid=True,
-            )
+            path_elements = [p for p in parsed.path.lstrip("/").split("/") if p]
+            if (parsed.netloc and len(path_elements) >= 1) or (
+                not parsed.netloc and len(path_elements) >= 2  # noqa: PLR2004
+            ):
+                return StorageQueryValidationResult(
+                    query=query,
+                    valid=True,
+                )
         elif parsed.scheme and parsed.netloc:
             # Accept any valid URL, to be used when retrieve=False.
             return StorageQueryValidationResult(
