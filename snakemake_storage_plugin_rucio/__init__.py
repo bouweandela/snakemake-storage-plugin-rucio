@@ -5,9 +5,9 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import inspect
+import os.path
 import random
 import re
-import os.path
 import shutil
 import tempfile
 from collections.abc import Iterable, Sequence
