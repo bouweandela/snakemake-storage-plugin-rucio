@@ -417,7 +417,8 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
 
             self.local_path().parent.mkdir(parents=True, exist_ok=True)
             shutil.move(
-                os.path.join(temp_dir, self.scope, self.file), self.local_path() # noqa: PTH118
+                os.path.join(temp_dir, self.scope, self.file), # noqa: PTH118
+                self.local_path(),
             )
 
     def store_object(self) -> None:
