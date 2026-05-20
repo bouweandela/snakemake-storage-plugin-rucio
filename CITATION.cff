@@ -18,6 +18,11 @@ authors:
     orcid: 'https://orcid.org/0000-0001-6168-0669'
     affiliation: Laboratoire de Physique Corpusculaire de Caen
     email: valentinpestel@gmail.com
+  - given-names: Dmitry
+    family-names: Kalinkin
+    orcid: 'https://orcid.org/0000-0002-6948-6075'
+    affiliation: Brookhaven National Laboratory
+    email: dmitry.kalinkin+snakemake@gmail.com
 repository-code: >-
   https://github.com/bouweandela/snakemake-storage-plugin-rucio
 url: >-
