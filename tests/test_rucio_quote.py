@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import doctest
 
-import snakemake_storage_plugin_rucio.rucio_quote as rucio_quote
+from snakemake_storage_plugin_rucio import rucio_quote
 
 
 def test_doctests() -> None:
