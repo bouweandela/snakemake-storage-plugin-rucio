@@ -1,4 +1,4 @@
-"""Encoding/decoding of arbitrary ASCII strings into Rucio-safe identifiers.
+r"""Encoding/decoding of arbitrary ASCII strings into Rucio-safe identifiers.
 
 Rucio identifiers must match ``^[A-Za-z0-9][A-Za-z0-9.\-_]*$``.
 
@@ -21,7 +21,7 @@ _SAFE_CHARS = frozenset(
 
 
 def encode(s: str) -> str:
-    """Encode an ASCII string into a Rucio-safe identifier.
+    r"""Encode an ASCII string into a Rucio-safe identifier.
 
     Parameters
     ----------
@@ -43,6 +43,7 @@ def encode(s: str) -> str:
     'a--b'
     >>> encode("a - b")
     'a-20---20-b'
+
     """
     parts: list[str] = []
     for ch in s:
@@ -85,6 +86,7 @@ def decode(s: str) -> str:
     'a-b'
     >>> decode("a-20---20-b")
     'a - b'
+
     """
 
     def _replace(m: re.Match) -> str:
