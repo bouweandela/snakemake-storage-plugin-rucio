@@ -35,6 +35,8 @@ from snakemake_interface_storage_plugins.storage_provider import (
     StorageQueryValidationResult,
 )
 
+from . import rucio_quote
+
 # Optional:
 # Define settings for your storage plugin (e.g. host url, credentials).
 # They will occur in the Snakemake CLI as --storage-<storage-plugin-name>-<param-name>
@@ -257,10 +259,8 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             if parsed.netloc:
                 self.scope = parsed.netloc
                 self.orig_file = parsed.path
-                # Map '/' in the UNIX path onto '.' in Rucio DID.
-                # The '.' is escaped as '..', which, assuming one never
-                # uses '//', should avoid collisions.
-                self.file = parsed.path.lstrip("/").replace(".", "..").replace("/", ".")
+                # Use rucio_quote to map UNIX path onto a Rucio DID.
+                self.file = rucio_quote.encode(parsed.path.lstrip("/"))
             else:
                 self.scope, self.file = path_elements
         else:
