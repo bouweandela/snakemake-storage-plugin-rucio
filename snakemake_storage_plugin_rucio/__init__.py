@@ -262,7 +262,9 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
                 # Use rucio_quote to map UNIX path onto a Rucio DID.
                 self.file = rucio_quote.encode(parsed.path.lstrip("/"))
             else:
-                self.scope, self.file = path_elements
+                self.scope = path_elements[0]
+                self.orig_file = "/".join(path_elements[1:])
+                self.file = rucio_quote.encode(self.orig_file)
         else:
             # When retrieve=False, the query is set to a URL and there is no
             # way to extract the scope and file from it.
