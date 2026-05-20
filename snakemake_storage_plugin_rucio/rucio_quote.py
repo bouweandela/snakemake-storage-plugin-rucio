@@ -1,6 +1,6 @@
 """Encoding/decoding of arbitrary ASCII strings into Rucio-safe identifiers.
 
-Rucio identifiers must match ``^[A-Za-z0-9][A-Za-z0-9\\.\\-\\_]*$``.
+Rucio identifiers must match ``^[A-Za-z0-9][A-Za-z0-9.\-_]*$``.
 
 Encoding rules:
 - Letters (A-Za-z), digits (0-9), dots (.) and underscores (_) pass through unchanged.
@@ -16,10 +16,7 @@ import re
 
 # Characters that are allowed to pass through verbatim (excluding dash).
 _SAFE_CHARS = frozenset(
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789"
-    "._"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._"
 )
 
 
@@ -34,7 +31,7 @@ def encode(s: str) -> str:
     Returns
     -------
     str
-        Encoded string matching ``^[A-Za-z0-9][A-Za-z0-9\\.\\-\\_]*$``.
+        Encoded string matching ``^[A-Za-z0-9][A-Za-z0-9.\-_]*$``.
 
     Examples
     --------
