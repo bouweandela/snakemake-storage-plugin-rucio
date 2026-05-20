@@ -42,7 +42,7 @@ def encode(s: str) -> str:
     >>> encode("a-b")
     'a--b'
     >>> encode("a - b")
-    'a-20---20-b'
+    'a-20----20-b'
 
     """
     parts: list[str] = []
@@ -84,7 +84,7 @@ def decode(s: str) -> str:
     'path/to/file'
     >>> decode("a--b")
     'a-b'
-    >>> decode("a-20---20-b")
+    >>> decode("a-20----20-b")
     'a - b'
 
     """
