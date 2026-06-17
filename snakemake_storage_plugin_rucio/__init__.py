@@ -128,6 +128,16 @@ StorageProviderSettings = dataclasses.make_dataclass(
                 },
             ),
         ),
+        (
+            "path_rewriting",
+            bool,
+            dataclasses.field(
+                default=True,
+                metadata={
+                    "help": "If true, rewrite UNIX-style paths to Rucio-compatible DIDs using path quoting (e.g. slashes become encoded). Set to false if your DID names already match the query exactly.",
+                },
+            ),
+        ),
     ],
     bases=(StorageProviderSettingsBase,),
 )
@@ -259,12 +269,16 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
             if parsed.netloc:
                 self.scope = parsed.netloc
                 self.orig_file = parsed.path
-                # Use rucio_quote to map UNIX path onto a Rucio DID.
-                self.file = rucio_quote.encode(parsed.path.lstrip("/"))
+                raw_file = parsed.path.lstrip("/")
             else:
                 self.scope = path_elements[0]
                 self.orig_file = "/".join(path_elements[1:])
-                self.file = rucio_quote.encode(self.orig_file)
+                raw_file = self.orig_file
+            # Optionally use rucio_quote to map UNIX path onto a Rucio DID.
+            if self.provider.settings.path_rewriting:
+                self.file = rucio_quote.encode(raw_file)
+            else:
+                self.file = raw_file
         else:
             # When retrieve=False, the query is set to a URL and there is no
             # way to extract the scope and file from it.
