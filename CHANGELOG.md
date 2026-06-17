@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.5.0...v0.5.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* correct mtime to treat rucio timestamp as utc ([#48](https://github.com/bouweandela/snakemake-storage-plugin-rucio/issues/48)) ([67bec3b](https://github.com/bouweandela/snakemake-storage-plugin-rucio/commit/67bec3ba363b6985186b5d16a8aa2298d729be3b))
+
 ## [0.5.0](https://github.com/bouweandela/snakemake-storage-plugin-rucio/compare/v0.4.3...v0.5.0) (2026-03-11)
 
 
