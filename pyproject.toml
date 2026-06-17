@@ -69,4 +69,5 @@ ignore = [
 known-first-party = ["snakemake-storage-plugin-rucio"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+addopts = "--doctest-modules"
+testpaths = ["tests", "snakemake_storage_plugin_rucio"]
