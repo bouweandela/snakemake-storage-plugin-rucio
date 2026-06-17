@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import datetime
 import hashlib
 import inspect
 import random
@@ -366,7 +367,8 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
     def mtime(self) -> float:
         """Return the modification time."""
         meta = self.client.get_metadata(scope=self.scope, name=self.file)
-        return meta["updated_at"].timestamp()
+        updated_at = meta["updated_at"].replace(tzinfo=datetime.UTC)
+        return updated_at.timestamp()
 
     @retry_decorator
     def size(self) -> int:
