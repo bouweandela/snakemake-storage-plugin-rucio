@@ -129,10 +129,10 @@ StorageProviderSettings = dataclasses.make_dataclass(
             ),
         ),
         (
-            "path_rewriting",
+            "no_path_rewriting",
             bool,
             dataclasses.field(
-                default=True,
+                default=False,
                 metadata={
                     "help": "If true, rewrite UNIX-style paths to Rucio-compatible DIDs using path quoting (e.g. slashes become encoded). Set to false if your DID names already match the query exactly.",
                 },
@@ -275,7 +275,7 @@ class StorageObject(StorageObjectRead, StorageObjectWrite, StorageObjectGlob):
                 self.orig_file = "/".join(path_elements[1:])
                 raw_file = self.orig_file
             # Optionally use rucio_quote to map UNIX path onto a Rucio DID.
-            if self.provider.settings.path_rewriting:
+            if not self.provider.settings.no_path_rewriting:
                 self.file = rucio_quote.encode(raw_file)
             else:
                 self.file = raw_file
