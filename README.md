@@ -7,6 +7,10 @@
 
 A Snakemake storage plugin that handles files available through [Rucio](https://rucio.cern.ch/).
 
+## Repository moved
+
+Current development of this package happens at https://github.com/snakemake/snakemake-storage-plugin-rucio.
+
 ## Usage
 
 A manual for using different storage providers with Snakemake is available
